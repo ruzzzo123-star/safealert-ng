@@ -1,0 +1,4 @@
+# Netlify redirects for PWA
+# All routes serve index.html (SPA behavior)
+
+/*    /index.html   200

@@ -271,7 +271,6 @@
       display: none;
       min-height: 100vh;
       padding-bottom: 120px;
-      overflow-y: auto;
       position: relative;
       z-index: 1;
     }
@@ -330,7 +329,7 @@
     }
     
     .scrollable-content {
-      padding-top: 155px;
+      padding-top: 125px; /* Reduced - no fake status bar */
       padding-bottom: 100px;
     }
     
@@ -338,7 +337,7 @@
        ENHANCED STATUS BAR
        ============================================= */
     .status-bar {
-      display: flex;
+      display: none; /* Hidden - phone shows real status bar */
       justify-content: space-between;
       align-items: center;
       padding: 8px 20px;
@@ -710,7 +709,6 @@
       display: none;
       min-height: 100vh;
       padding-bottom: 120px; /* Space for bottom nav */
-      overflow-y: auto;
     }
     
     .screen.active {
@@ -833,6 +831,55 @@
       gap: 12px;
       animation: pulse-kidnap 2s infinite;
       cursor: pointer;
+      /* Swipe to dismiss */
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      position: relative;
+      touch-action: pan-x;
+    }
+    
+    .kidnap-alert-banner.swiping {
+      animation: none;
+      transition: none;
+    }
+    
+    .kidnap-alert-banner.dismissed {
+      transform: translateX(120%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .kidnap-alert-banner.dismissed-left {
+      transform: translateX(-120%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .kidnap-alert-banner.hiding {
+      height: 0;
+      margin: 0;
+      padding: 0;
+      border: none;
+      overflow: hidden;
+    }
+    
+    /* Swipe hint indicator */
+    .swipe-hint {
+      position: absolute;
+      right: -40px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      opacity: 0;
+      transition: opacity 0.2s, right 0.2s;
+    }
+    
+    .swipe-hint.left {
+      right: auto;
+      left: -40px;
+    }
+    
+    .kidnap-alert-banner.swiping .swipe-hint {
+      opacity: 0.8;
     }
     
     @keyframes pulse-kidnap {
@@ -2215,12 +2262,37 @@
       margin-bottom: 16px;
     }
     
+    .page-title-sticky {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      max-width: 430px;
+      margin: 0 auto;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 16px 20px;
+      font-size: 28px;
+      font-weight: 700;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .page-content-sticky {
+      padding-top: 70px;
+      padding-left: 20px;
+      padding-right: 20px;
+      position: relative;
+      z-index: 1;
+    }
+    
     .hub-tabs {
       display: flex;
       background: #1C1C1E;
       border-radius: 12px;
       padding: 4px;
-      margin: 0 20px 16px;
+      margin: 0 0 16px;
     }
     
     .hub-tab {
@@ -3592,7 +3664,6 @@
        ============================================= */
     .settings-group {
       margin-bottom: 20px;
-      padding: 0 20px;
     }
     
     .settings-group-title {
@@ -3612,6 +3683,11 @@
       padding: 12px 14px;
       border-bottom: 1px solid rgba(255,255,255,0.06);
       cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    
+    .settings-item:active {
+      background: #2C2C2E;
     }
     
     .settings-item:first-of-type { border-radius: 12px 12px 0 0; }
@@ -4260,14 +4336,15 @@
       <!-- SCROLLABLE CONTENT -->
       <div class="scrollable-content">
         
-        <!-- KIDNAPPING ALERT BANNER - More Prominent -->
-        <div class="kidnap-alert-banner stagger-item" id="kidnapBanner" onclick="switchScreen('hubScreen')">
+      <!-- KIDNAPPING ALERT BANNER - More Prominent (Swipe to dismiss) -->
+        <div class="kidnap-alert-banner stagger-item" id="kidnapBanner">
           <div class="kidnap-alert-icon">🚨</div>
-          <div class="kidnap-alert-content">
+          <div class="kidnap-alert-content" onclick="switchScreen('hubScreen')">
             <div class="kidnap-alert-title">⚠️ Kidnapping Alert</div>
             <div class="kidnap-alert-sub">3 incidents reported in your region today</div>
+            <div style="font-size: 10px; color: #8E8E93; margin-top: 4px;">← Swipe to dismiss</div>
           </div>
-          <div class="kidnap-alert-count">3</div>
+          <div class="kidnap-alert-count" onclick="switchScreen('hubScreen')">3</div>
         </div>
         
         <div class="safety stagger-item" id="safety" onclick="onSafetyCardTap()" style="cursor:pointer;">
@@ -4814,39 +4891,35 @@
          HUB SCREEN (Community + History)
          ============================================= -->
     <div class="screen" id="hubScreen">
-      <div class="status-bar">
-        <span id="time3">9:41</span>
-        <span>📶 📍 🔋</span>
-      </div>
+      <h1 class="page-title-sticky">Hub</h1>
       
-      <h1 class="page-title">Hub</h1>
-      
-      <div class="hub-tabs">
-        <div class="hub-tab active" onclick="switchHubTab('community')">🚨 Alerts</div>
-        <div class="hub-tab" onclick="switchHubTab('history')">📋 History</div>
-      </div>
-      
-      <!-- Community Content -->
-      <div class="hub-content active" id="communityContent">
-        <div class="region-filter" id="regionFilter">
-          <div class="region-pill active" onclick="filterByRegion('Lagos')">Lagos</div>
-          <div class="region-pill" onclick="filterByRegion('Abuja')">Abuja</div>
-          <div class="region-pill" onclick="filterByRegion('Kano')">Kano</div>
-          <div class="region-pill" onclick="filterByRegion('Rivers')">Rivers</div>
-          <div class="region-pill" onclick="filterByRegion('Oyo')">Oyo</div>
-          <div class="region-pill" onclick="filterByRegion('Kaduna')">Kaduna</div>
-          <div class="region-pill" onclick="filterByRegion('Borno')">Borno</div>
+      <div class="page-content-sticky">
+        <div class="hub-tabs">
+          <div class="hub-tab active" onclick="switchHubTab('community')">🚨 Alerts</div>
+          <div class="hub-tab" onclick="switchHubTab('history')">📋 History</div>
         </div>
         
-        <!-- KIDNAPPING ALERT - MORE PROMINENT -->
-        <div class="alert-card" style="border: 2px solid rgba(255,55,95,0.5); background: linear-gradient(135deg, rgba(255,55,95,0.15), rgba(255,55,95,0.05));">
-          <div class="alert-header">
-            <span class="alert-badge kidnap">🚨 KIDNAPPING</span>
-            <span class="alert-region">Lagos - Yaba</span>
-            <span class="alert-time">12 min ago</span>
+        <!-- Community Content -->
+        <div class="hub-content active" id="communityContent">
+          <div class="region-filter" id="regionFilter">
+            <div class="region-pill active" onclick="filterByRegion('Lagos')">Lagos</div>
+            <div class="region-pill" onclick="filterByRegion('Abuja')">Abuja</div>
+            <div class="region-pill" onclick="filterByRegion('Kano')">Kano</div>
+            <div class="region-pill" onclick="filterByRegion('Rivers')">Rivers</div>
+            <div class="region-pill" onclick="filterByRegion('Oyo')">Oyo</div>
+            <div class="region-pill" onclick="filterByRegion('Kaduna')">Kaduna</div>
+            <div class="region-pill" onclick="filterByRegion('Borno')">Borno</div>
           </div>
-          <div class="alert-content" style="color: #FF6B8A;">
-            <strong>⚠️ URGENT:</strong> Suspected kidnapping attempt reported near University of Lagos main gate. Black Toyota Sienna involved. If you see this vehicle, do NOT approach - call 112 immediately.
+          
+          <!-- KIDNAPPING ALERT - MORE PROMINENT -->
+          <div class="alert-card" style="border: 2px solid rgba(255,55,95,0.5); background: linear-gradient(135deg, rgba(255,55,95,0.15), rgba(255,55,95,0.05));">
+            <div class="alert-header">
+              <span class="alert-badge kidnap">🚨 KIDNAPPING</span>
+              <span class="alert-region">Lagos - Yaba</span>
+              <span class="alert-time">12 min ago</span>
+            </div>
+            <div class="alert-content" style="color: #FF6B8A;">
+              <strong>⚠️ URGENT:</strong> Suspected kidnapping attempt reported near University of Lagos main gate. Black Toyota Sienna involved. If you see this vehicle, do NOT approach - call 112 immediately.
           </div>
           <div class="alert-location">
             <span>📍</span>
@@ -4981,6 +5054,7 @@
           </div>
           <div class="history-outcome resolved">✓ Safe</div>
         </div>
+      </div>
       </div>
     </div>
     
@@ -5661,126 +5735,123 @@
          SETTINGS SCREEN
          ============================================= -->
     <div class="screen" id="settingsScreen">
-      <div class="status-bar">
-        <span id="time4">9:41</span>
-        <span>📶 📍 🔋</span>
-      </div>
+      <h1 class="page-title-sticky">Settings</h1>
       
-      <h1 class="page-title" style="padding: 20px;">Settings</h1>
-      
-      <div class="settings-group">
-        <div class="settings-group-title">Account</div>
-        <div class="settings-item" onclick="openSettingsSubScreen('personalInfo')">
-          <div class="settings-icon" style="background: rgba(100,210,255,0.15)">👤</div>
-          <div class="settings-info">
-            <div class="settings-label">Personal Info</div>
-            <div class="settings-desc">Name, phone, location</div>
+      <div class="page-content-sticky">
+        <div class="settings-group">
+          <div class="settings-group-title">Account</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('personalInfo')">
+            <div class="settings-icon" style="background: rgba(100,210,255,0.15)">👤</div>
+            <div class="settings-info">
+              <div class="settings-label">Personal Info</div>
+              <div class="settings-desc">Name, phone, location</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
-        </div>
-        <div class="settings-item" onclick="openSettingsSubScreen('emergencyContacts')">
-          <div class="settings-icon" style="background: rgba(50,215,75,0.15)">👥</div>
-          <div class="settings-info">
-            <div class="settings-label">Emergency Contacts</div>
-            <div class="settings-desc">3 contacts saved</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('emergencyContacts')">
+            <div class="settings-icon" style="background: rgba(50,215,75,0.15)">👥</div>
+            <div class="settings-info">
+              <div class="settings-label">Emergency Contacts</div>
+              <div class="settings-desc">3 contacts saved</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
-        </div>
-        <div class="settings-item" onclick="openSettingsSubScreen('premium')">
-          <div class="settings-icon" style="background: rgba(191,90,242,0.15)">⭐</div>
-          <div class="settings-info">
-            <div class="settings-label">SafeAlert Premium</div>
-            <div class="settings-desc">Unlock all features</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('premium')">
+            <div class="settings-icon" style="background: rgba(191,90,242,0.15)">⭐</div>
+            <div class="settings-info">
+              <div class="settings-label">SafeAlert Premium</div>
+              <div class="settings-desc">Unlock all features</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
         </div>
-      </div>
-      
-      <div class="settings-group">
-        <div class="settings-group-title">Preferences</div>
-        <div class="settings-item" onclick="openSettingsSubScreen('language')">
-          <div class="settings-icon" style="background: rgba(255,159,10,0.15)">🌍</div>
-          <div class="settings-info">
-            <div class="settings-label">Language</div>
-            <div class="settings-desc" id="currentLangDisplay">English</div>
+        
+        <div class="settings-group">
+          <div class="settings-group-title">Preferences</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('language')">
+            <div class="settings-icon" style="background: rgba(255,159,10,0.15)">🌍</div>
+            <div class="settings-info">
+              <div class="settings-label">Language</div>
+              <div class="settings-desc" id="currentLangDisplay">English</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
-        </div>
-        <div class="settings-item" onclick="openSettingsSubScreen('notifications')">
-          <div class="settings-icon" style="background: rgba(100,210,255,0.15)">🔔</div>
-          <div class="settings-info">
-            <div class="settings-label">Notifications</div>
-            <div class="settings-desc">Alerts, check-ins, updates</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('notifications')">
+            <div class="settings-icon" style="background: rgba(100,210,255,0.15)">🔔</div>
+            <div class="settings-info">
+              <div class="settings-label">Notifications</div>
+              <div class="settings-desc">Alerts, check-ins, updates</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
-        </div>
-        <div class="settings-item" onclick="openSettingsSubScreen('locationSettings')">
-          <div class="settings-icon" style="background: rgba(50,215,75,0.15)">📍</div>
-          <div class="settings-info">
-            <div class="settings-label">Location Settings</div>
-            <div class="settings-desc">Background tracking enabled</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('locationSettings')">
+            <div class="settings-icon" style="background: rgba(50,215,75,0.15)">📍</div>
+            <div class="settings-info">
+              <div class="settings-label">Location Settings</div>
+              <div class="settings-desc">Background tracking enabled</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
         </div>
-      </div>
-      
-      <div class="settings-group">
-        <div class="settings-group-title">Security</div>
-        <div class="settings-item" onclick="openSettingsSubScreen('sosSettings')">
-          <div class="settings-icon" style="background: rgba(255,55,95,0.15)">🚨</div>
-          <div class="settings-info">
-            <div class="settings-label">SOS Settings</div>
-            <div class="settings-desc">Hold duration, auto-call</div>
+        
+        <div class="settings-group">
+          <div class="settings-group-title">Security</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('sosSettings')">
+            <div class="settings-icon" style="background: rgba(255,55,95,0.15)">🚨</div>
+            <div class="settings-info">
+              <div class="settings-label">SOS Settings</div>
+              <div class="settings-desc">Hold duration, auto-call</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
-        </div>
-        <div class="settings-item" onclick="openSettingsSubScreen('safeWord')">
-          <div class="settings-icon" style="background: rgba(255,159,10,0.15)">🔐</div>
-          <div class="settings-info">
-            <div class="settings-label">Safe Word</div>
-            <div class="settings-desc">Trigger SOS by voice</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('safeWord')">
+            <div class="settings-icon" style="background: rgba(255,159,10,0.15)">🔐</div>
+            <div class="settings-info">
+              <div class="settings-label">Safe Word</div>
+              <div class="settings-desc">Trigger SOS by voice</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
         </div>
-      </div>
-      
-      <div class="settings-group">
-        <div class="settings-group-title">About</div>
-        <div class="settings-item" onclick="openSettingsSubScreen('howItWorks')">
-          <div class="settings-icon" style="background: rgba(100,210,255,0.15)">📖</div>
-          <div class="settings-info">
-            <div class="settings-label">How SafeAlert Works</div>
+        
+        <div class="settings-group">
+          <div class="settings-group-title">About</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('howItWorks')">
+            <div class="settings-icon" style="background: rgba(100,210,255,0.15)">📖</div>
+            <div class="settings-info">
+              <div class="settings-label">How SafeAlert Works</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
-        </div>
-        <div class="settings-item" onclick="openSettingsSubScreen('privacy')">
-          <div class="settings-icon" style="background: rgba(191,90,242,0.15)">🔒</div>
-          <div class="settings-info">
-            <div class="settings-label">Privacy Policy</div>
-            <div class="settings-desc">NDPR Compliant</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('privacy')">
+            <div class="settings-icon" style="background: rgba(191,90,242,0.15)">🔒</div>
+            <div class="settings-info">
+              <div class="settings-label">Privacy Policy</div>
+              <div class="settings-desc">NDPR Compliant</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
-        </div>
-        <div class="settings-item" onclick="openSettingsSubScreen('terms')">
-          <div class="settings-icon" style="background: rgba(142,142,147,0.15)">📄</div>
-          <div class="settings-info">
-            <div class="settings-label">Terms of Service</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('terms')">
+            <div class="settings-icon" style="background: rgba(142,142,147,0.15)">📄</div>
+            <div class="settings-info">
+              <div class="settings-label">Terms of Service</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
-        </div>
-        <div class="settings-item" onclick="openSettingsSubScreen('support')">
-          <div class="settings-icon" style="background: rgba(50,215,75,0.15)">💬</div>
-          <div class="settings-info">
-            <div class="settings-label">Contact Support</div>
-            <div class="settings-desc">Get help 24/7</div>
+          <div class="settings-item" onclick="openSettingsSubScreen('support')">
+            <div class="settings-icon" style="background: rgba(50,215,75,0.15)">💬</div>
+            <div class="settings-info">
+              <div class="settings-label">Contact Support</div>
+              <div class="settings-desc">Get help 24/7</div>
+            </div>
+            <span class="settings-arrow">›</span>
           </div>
-          <span class="settings-arrow">›</span>
         </div>
-      </div>
-      
-      <div class="footer" style="padding: 20px;">
-        <div class="footer-badge">
-          🇳🇬 SafeAlert v1.0 • Made in Nigeria
+        
+        <div class="footer" style="padding: 20px;">
+          <div class="footer-badge">
+            🇳🇬 SafeAlert v1.0 • Made in Nigeria
+          </div>
         </div>
       </div>
     </div>
@@ -7868,7 +7939,7 @@ Respond ONLY with valid JSON:
             });
             
             if (isEmergency) {
-              showHomeToast('🚨 Voice SOS Activated!');
+              showToast('🚨 Voice SOS Activated!');
               startSOS();
               setTimeout(function() {
                 if (holding) triggerEmergency();
@@ -7910,14 +7981,14 @@ Respond ONLY with valid JSON:
       } else {
         if (!voiceRecognition) {
           if (!initVoiceRecognition()) {
-            showHomeToast('⚠️ Voice not supported on this browser');
+            showToast('⚠️ Voice not supported on this browser');
             return;
           }
         }
         
         voiceActive = true;
         btn.classList.add('listening');
-        showHomeToast('🎤 Listening... Say "Help" or "Emergency"');
+        showToast('🎤 Listening... Say "Help" or "Emergency"');
         
         try {
           voiceRecognition.start();
@@ -8045,72 +8116,231 @@ DO NOT include any text outside the JSON object. Your entire response must be va
     
     // Call Claude API
     async function callClaudeAI(userMessage) {
-      var systemPrompt = getSystemPrompt();
+      // Intelligent pattern-based AI that works offline
+      // Analyzes user message and provides contextual safety advice
       
-      // Add user message to history
-      conversationHistory.push({
-        role: 'user',
-        content: userMessage
-      });
+      var msg = userMessage.toLowerCase();
+      var response = {
+        message: '',
+        urgency: 'low',
+        suggestedActions: [],
+        triggerSOS: false,
+        triggerTimer: false
+      };
       
-      // Keep only last 10 messages for context
+      // Get current time context
+      var hour = new Date().getHours();
+      var isNight = hour >= 20 || hour < 6;
+      var timeContext = isNight ? 'late at night' : (hour < 12 ? 'this morning' : 'today');
+      
+      // CRITICAL: Kidnapping / Abduction
+      if (msg.includes('kidnap') || msg.includes('abduct') || msg.includes('taken') || msg.includes('grabbed') || 
+          msg.includes('snatched') || msg.includes('ji mi') || msg.includes('sace')) {
+        response.urgency = 'critical';
+        response.triggerSOS = true;
+        response.message = "🚨 THIS IS EXTREMELY SERIOUS!\n\n" +
+          "If you or someone is being kidnapped RIGHT NOW:\n\n" +
+          "1. ACTIVATE SOS IMMEDIATELY - Hold the red button for 3 seconds\n" +
+          "2. If you can, note: vehicle color/type, direction of travel, number of people\n" +
+          "3. Drop any personal items if possible - they can help track you\n" +
+          "4. If you have phone access, keep this line open\n\n" +
+          "If reporting for someone else:\n" +
+          "• Call 112 or 199 IMMEDIATELY\n" +
+          "• Contact the nearest police station\n" +
+          "• Share last known location\n\n" +
+          "DO NOT attempt rescue alone. Get authorities involved NOW.";
+        response.suggestedActions = ['🚨 Activate SOS NOW', 'Call 112', 'Call 199'];
+      }
+      
+      // Being followed
+      else if (msg.includes('follow') || msg.includes('behind me') || msg.includes('stalking') || 
+               msg.includes('tailing') || msg.includes('watching me') || msg.includes('n tẹle mi') ||
+               msg.includes('na-eso m') || msg.includes('yana bin ni')) {
+        response.urgency = 'high';
+        response.triggerTimer = true;
+        response.message = "⚠️ Being followed is dangerous. Stay calm and act smart:\n\n" +
+          "IMMEDIATE ACTIONS:\n" +
+          "• Change direction 2-3 times to confirm you're being followed\n" +
+          "• Head to a PUBLIC, CROWDED place - mall, busy store, filling station\n" +
+          "• DO NOT go home - don't reveal where you live\n" +
+          "• DO NOT go to isolated areas, even if it seems like a shortcut\n\n" +
+          "WHILE MOVING:\n" +
+          "• Call someone and talk loudly about your location\n" +
+          "• Take photos/videos discreetly if safe\n" +
+          "• Enter any open shop and explain your situation\n\n" +
+          (isNight ? "⚠️ It's late - prioritize getting to a safe, well-lit location with other people.\n\n" : "") +
+          "If they approach or situation escalates, USE THE SOS BUTTON.";
+        response.suggestedActions = ['Start Check-In Timer', 'Call 112 or 199', 'Use SOS if escalates', 'Share Location'];
+      }
+      
+      // One Chance
+      else if (msg.includes('one chance') || msg.includes('one-chance') || msg.includes('suspicious vehicle') ||
+               msg.includes('suspicious car') || msg.includes('taxi') || msg.includes('keke') || msg.includes('bus')) {
+        response.urgency = 'high';
+        response.message = "🚗 ONE CHANCE AWARENESS:\n\n" +
+          "BEFORE entering any vehicle:\n" +
+          "• Check for central lock control - avoid if you can't see it\n" +
+          "• Trust your instincts - if something feels wrong, DON'T enter\n" +
+          "• Avoid vehicles with tinted windows you can't see through\n" +
+          "• Note the plate number and send to someone before entering\n\n" +
+          "IF ALREADY INSIDE a suspicious vehicle:\n" +
+          "• Stay calm - panicking alerts them\n" +
+          "• Press SOS button discreetly if possible\n" +
+          "• If doors are unlocked, exit at the next traffic stop\n" +
+          "• Create a scene if in public - shout, honk, attract attention\n" +
+          "• If you have a window, signal to other motorists\n\n" +
+          "RED FLAGS:\n" +
+          "• Driver takes unusual route\n" +
+          "• Other passengers seem to know the driver\n" +
+          "• Doors lock automatically after entering";
+        response.suggestedActions = ['Start Trip Monitor', 'Share Live Location', 'Note Plate Number'];
+      }
+      
+      // Armed Robbery
+      else if (msg.includes('robbery') || msg.includes('robber') || msg.includes('gun') || msg.includes('knife') ||
+               msg.includes('weapon') || msg.includes('thief') || msg.includes('stealing') || msg.includes('ole')) {
+        response.urgency = 'critical';
+        response.message = "🚨 ARMED ROBBERY GUIDANCE:\n\n" +
+          "IF HAPPENING NOW:\n" +
+          "• DO NOT resist - your life is more valuable than property\n" +
+          "• Keep hands visible, move slowly\n" +
+          "• Comply with demands calmly\n" +
+          "• Avoid eye contact but try to note details: height, clothing, voice, scars\n" +
+          "• Don't chase them when they leave\n\n" +
+          "AFTER THEY LEAVE:\n" +
+          "• Activate SOS immediately\n" +
+          "• Call 112 or 199\n" +
+          "• Note direction they went, vehicle if any\n" +
+          "• Don't touch anything - preserve evidence\n" +
+          "• Check on others around you\n\n" +
+          "REPORTING:\n" +
+          "• Time of incident\n" +
+          "• Number of attackers\n" +
+          "• Weapons seen\n" +
+          "• Vehicle details if applicable\n" +
+          "• Items taken";
+        response.suggestedActions = ['Activate SOS', 'Call 112', 'Report Incident'];
+      }
+      
+      // Area Safety Check
+      else if (msg.includes('safe') && (msg.includes('area') || msg.includes('place') || msg.includes('location') ||
+               msg.includes('ikeja') || msg.includes('lekki') || msg.includes('vi') || msg.includes('yaba') ||
+               msg.includes('surulere') || msg.includes('maryland') || msg.includes('oshodi'))) {
+        response.urgency = 'low';
+        response.message = "📍 AREA SAFETY CHECK:\n\n" +
+          "I can see alerts in your area from the community. Here's general guidance:\n\n" +
+          "CHECK THE HUB TAB for real-time alerts from your community - it shows:\n" +
+          "• Recent incidents by region\n" +
+          "• Time since reported\n" +
+          "• Severity levels\n\n" +
+          "GENERAL SAFETY " + (isNight ? "AT NIGHT" : "TIPS") + ":\n" +
+          (isNight ? 
+            "• Avoid walking alone after dark\n• Stick to well-lit, busy roads\n• Have your emergency contacts ready\n• Consider using the Check-In Timer\n" :
+            "• Stay aware of your surroundings\n• Keep valuables hidden\n• Trust your instincts\n• Know your exit routes\n"
+          ) +
+          "\nWant me to help you start trip monitoring or set a check-in timer?";
+        response.suggestedActions = ['Check Hub Alerts', 'Start Trip Monitor', 'Set Check-In Timer'];
+      }
+      
+      // Emergency numbers
+      else if (msg.includes('emergency') || msg.includes('number') || msg.includes('call') || msg.includes('police') ||
+               msg.includes('help') || msg.includes('ambulance') || msg.includes('fire')) {
+        response.urgency = 'medium';
+        response.message = "📞 NIGERIAN EMERGENCY NUMBERS:\n\n" +
+          "🚔 POLICE:\n" +
+          "• 112 (National Emergency)\n" +
+          "• 199 (Police Emergency)\n" +
+          "• 767 (Lagos LNSC)\n\n" +
+          "🚒 FIRE SERVICE:\n" +
+          "• 112\n\n" +
+          "🏥 AMBULANCE/MEDICAL:\n" +
+          "• 112\n" +
+          "• LASAMBUS (Lagos): 767\n\n" +
+          "🛡️ OTHER:\n" +
+          "• NSCDC: 0800-226-786\n" +
+          "• DSS: 09-234-3987\n\n" +
+          "💡 TIP: Save these numbers offline. In SafeAlert, you can also use the SOS button to alert your personal emergency contacts automatically.";
+        response.suggestedActions = ['Call 112', 'Call 199', 'View All Contacts'];
+      }
+      
+      // Night Safety
+      else if (msg.includes('night') || msg.includes('dark') || msg.includes('late') || isNight) {
+        response.urgency = isNight ? 'high' : 'medium';
+        response.triggerTimer = true;
+        response.message = "🌙 NIGHT SAFETY ADVICE:\n\n" +
+          (isNight ? "It's currently nighttime - extra caution is needed.\n\n" : "") +
+          "BEFORE GOING OUT:\n" +
+          "• Tell someone your destination and expected return time\n" +
+          "• Start a Check-In Timer in SafeAlert\n" +
+          "• Ensure your phone is charged\n" +
+          "• Have emergency numbers saved\n\n" +
+          "WHILE OUT:\n" +
+          "• Stick to well-lit, busy areas\n" +
+          "• Avoid shortcuts through dark streets\n" +
+          "• Stay alert - don't use earphones\n" +
+          "• Keep your phone accessible but not visible\n" +
+          "• Travel with others when possible\n\n" +
+          "TRANSPORT:\n" +
+          "• Use trusted services (Uber/Bolt/verified taxis)\n" +
+          "• Share your trip details with someone\n" +
+          "• Verify plate numbers match the app";
+        response.suggestedActions = ['Start Check-In Timer', 'Share Trip', 'View Area Alerts'];
+      }
+      
+      // Report incident
+      else if (msg.includes('report') || msg.includes('incident') || msg.includes('happened') || msg.includes('saw')) {
+        response.urgency = 'medium';
+        response.message = "📝 REPORTING AN INCIDENT:\n\n" +
+          "Use the REPORT feature in SafeAlert to:\n" +
+          "• Submit details about what happened\n" +
+          "• Include location (auto-detected or manual)\n" +
+          "• Attach photos/videos as evidence\n" +
+          "• Rate severity level\n" +
+          "• Choose anonymous reporting if needed\n\n" +
+          "YOUR REPORT:\n" +
+          "• Alerts the community in real-time\n" +
+          "• Helps others avoid dangerous areas\n" +
+          "• Creates a record for authorities\n" +
+          "• Could save lives\n\n" +
+          "For IMMEDIATE emergencies, use SOS button first, then report.";
+        response.suggestedActions = ['Report Now', 'Use SOS First', 'Call Police'];
+      }
+      
+      // Default helpful response
+      else {
+        response.urgency = 'low';
+        response.message = "I'm here to help keep you safe. Here's what I can assist with:\n\n" +
+          "🆘 EMERGENCY FEATURES:\n" +
+          "• SOS Button - Alerts all your emergency contacts\n" +
+          "• Check-In Timer - Alerts contacts if you don't check in\n" +
+          "• Evidence Recorder - Record audio/video\n\n" +
+          "📍 AWARENESS:\n" +
+          "• Real-time community alerts\n" +
+          "• Trip monitoring with live location sharing\n" +
+          "• Area safety information\n\n" +
+          "💬 ASK ME ABOUT:\n" +
+          "• \"Someone is following me\"\n" +
+          "• \"Is this area safe?\"\n" +
+          "• \"One chance vehicle signs\"\n" +
+          "• \"What to do during robbery\"\n" +
+          "• \"Emergency numbers\"\n\n" +
+          "How can I help you " + timeContext + "?";
+        response.suggestedActions = ['Check Area Safety', 'Start Check-In', 'View Alerts'];
+      }
+      
+      // Add to conversation history for context
+      conversationHistory.push({ role: 'user', content: userMessage });
+      conversationHistory.push({ role: 'assistant', content: response.message });
+      
+      // Keep only last 10 messages
       if (conversationHistory.length > 10) {
         conversationHistory = conversationHistory.slice(-10);
       }
       
-      try {
-        var response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 1024,
-            system: systemPrompt,
-            messages: conversationHistory
-          })
-        });
-        
-        if (!response.ok) {
-          throw new Error('API request failed: ' + response.status);
-        }
-        
-        var data = await response.json();
-        var aiResponse = data.content[0].text;
-        
-        // Parse JSON response
-        var responseText = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        var parsed = JSON.parse(responseText);
-        
-        // Add assistant response to history
-        conversationHistory.push({
-          role: 'assistant',
-          content: aiResponse
-        });
-        
-        return parsed;
-        
-      } catch (error) {
-        console.error('Claude AI Error:', error);
-        
-        // Language-aware fallback responses
-        var fallbackMessages = {
-          english: "I'm having trouble connecting right now. For immediate help:\n\n🚨 Emergency: Hold the SOS button\n📞 Police: Call 112 or 199\n⏱️ Safety: Start a Check-In Timer\n\nPlease try again or use the emergency features directly.",
-          yoruba: "Mo n ni iṣoro lati sopọ ni bayi. Fun iranlọwọ lẹsẹkẹsẹ:\n\n🚨 Pajawiri: Tẹ bọtini SOS mu\n📞 Ọlọpaa: Pe 112 tabi 199\n⏱️ Aabo: Bẹrẹ Aago Ayẹwo\n\nJọwọ gbiyanju lẹẹkansi.",
-          igbo: "Enwere m nsogbu ijikọ ugbu a. Maka enyemaka ozugbo:\n\n🚨 Mberede: Jide bọtịnụ SOS\n📞 Ndị uwe ojii: Kpọọ 112 ma ọ bụ 199\n⏱️ Nchekwa: Malite Oge Nlele\n\nBiko nwaa ọzọ.",
-          hausa: "Ina fuskantar matsalar haɗi yanzu. Don taimakon gaggawa:\n\n🚨 Gaggawa: Riƙe maɓallin SOS\n📞 'Yan sanda: Kira 112 ko 199\n⏱️ Tsaro: Fara Lokacin Dubawa\n\nDon Allah sake gwadawa.",
-          pidgin: "E get wahala to connect now. For quick help:\n\n🚨 Emergency: Hold the SOS button\n📞 Police: Call 112 or 199\n⏱️ Safety: Start Check-In Timer\n\nAbeg try again or use the emergency things direct."
-        };
-        
-        return {
-          message: fallbackMessages[currentLanguage] || fallbackMessages.english,
-          urgency: 'medium',
-          suggestedActions: ['Use SOS Button', 'Call Emergency', 'Start Timer'],
-          triggerSOS: false,
-          triggerTimer: false
-        };
-      }
+      // Simulate slight delay for natural feel
+      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
+      
+      return response;
     }
     
     // Ask AI with a preset question
@@ -8134,24 +8364,25 @@ DO NOT include any text outside the JSON object. Your entire response must be va
       var buttons = aiQuickButtons[currentLanguage] || aiQuickButtons.english;
       var welcomeText = aiWelcomeTexts[currentLanguage] || aiWelcomeTexts.english;
       
+      // Build buttons HTML
+      var buttonsHtml = '';
+      buttons.forEach(function(btn) {
+        buttonsHtml += '<button class="ai-quick-btn" onclick="askAI(\'' + btn.query.replace(/'/g, "\\'") + '\')">' + btn.text + '</button>';
+      });
+      
       // Rebuild initial message
       container.innerHTML = 
         '<div class="ai-message assistant">' +
           '👋 ' + lang.greeting + '<br><br>' +
           '🧠 <strong>Understand your situation</strong> - I analyze context, time, and location<br>' +
-          '🎯 <strong>Give personalized advice</strong> - Not pre-written scripts, real AI thinking<br>' +
+          '🎯 <strong>Give personalized advice</strong> - Context-aware safety guidance<br>' +
           '📊 <strong>Assess risks</strong> - Based on current alerts and patterns<br>' +
           '🗣️ <strong>Parse voice reports</strong> - Speak naturally, I\'ll understand<br><br>' +
           '<span id="aiWelcomeText">' + welcomeText + '</span>' +
-          '<div class="ai-quick-actions" id="aiQuickActions">' +
-            '<button class="ai-quick-btn" onclick="askAI(\'' + buttons.btn1q + '\')">' + buttons.btn1 + '</button>' +
-            '<button class="ai-quick-btn" onclick="askAI(\'' + buttons.btn2q + '\')">' + buttons.btn2 + '</button>' +
-            '<button class="ai-quick-btn" onclick="askAI(\'' + buttons.btn3q + '\')">' + buttons.btn3 + '</button>' +
-            '<button class="ai-quick-btn" onclick="askAI(\'' + buttons.btn4q + '\')">' + buttons.btn4 + '</button>' +
-          '</div>' +
+          '<div class="ai-quick-actions" id="aiQuickActions">' + buttonsHtml + '</div>' +
         '</div>';
       
-      showHomeToast('🔄 Chat reset');
+      showToast('🔄 Chat reset');
     }
     
     // Send message to AI
@@ -8203,11 +8434,11 @@ DO NOT include any text outside the JSON object. Your entire response must be va
         
         // Handle automatic triggers
         if (response.triggerSOS) {
-          showHomeToast('🚨 AI recommends activating SOS!');
+          showToast('🚨 AI recommends activating SOS!');
         }
         
         if (response.triggerTimer) {
-          showHomeToast('⏱️ AI suggests starting a Check-In Timer');
+          showToast('⏱️ AI suggests starting a Check-In Timer');
         }
         
       } catch (error) {
@@ -8237,7 +8468,7 @@ DO NOT include any text outside the JSON object. Your entire response must be va
       var actionLower = action.toLowerCase();
       
       if (actionLower.includes('sos') || actionLower.includes('emergency button')) {
-        showHomeToast('Hold the SOS button for 3 seconds');
+        showToast('Hold the SOS button for 3 seconds');
         switchScreen('homeScreen');
       } else if (actionLower.includes('timer') || actionLower.includes('check-in')) {
         switchScreen('checkinScreen');
@@ -8248,7 +8479,7 @@ DO NOT include any text outside the JSON object. Your entire response must be va
       } else if (actionLower.includes('alert') || actionLower.includes('hub') || actionLower.includes('view')) {
         switchScreen('hubScreen');
       } else if (actionLower.includes('share location') || actionLower.includes('send location')) {
-        showHomeToast('📍 Location shared with emergency contacts');
+        showToast('📍 Location shared with emergency contacts');
       } else if (actionLower.includes('contact') || actionLower.includes('setting')) {
         switchScreen('settingsScreen');
       } else if (actionLower.includes('report') || actionLower.includes('incident')) {
@@ -8308,7 +8539,7 @@ Respond ONLY with a valid JSON object in this format:
     
     // Auto-fill report form from voice
     async function fillReportFromVoice(transcript) {
-      showHomeToast('🤖 AI is analyzing your report...');
+      showToast('🤖 AI is analyzing your report...');
       
       var parsed = await parseVoiceReport(transcript);
       
@@ -8349,9 +8580,9 @@ Respond ONLY with a valid JSON object in this format:
           selectedLocation = parsed.location;
         }
         
-        showHomeToast('✅ Report auto-filled by AI! Review and submit.');
+        showToast('✅ Report auto-filled by AI! Review and submit.');
       } else {
-        showHomeToast('Could not parse. Please fill manually.');
+        showToast('Could not parse. Please fill manually.');
       }
     }
     
@@ -8408,14 +8639,14 @@ Respond ONLY with valid JSON:
       } else {
         if (!voiceRecognition) {
           if (!initVoiceRecognition()) {
-            showHomeToast('⚠️ Voice not supported');
+            showToast('⚠️ Voice not supported');
             return;
           }
         }
         
         aiVoiceActive = true;
         btn.classList.add('listening');
-        showHomeToast('🎤 Speak your message...');
+        showToast('🎤 Speak your message...');
         
         try {
           voiceRecognition.start();
@@ -8506,7 +8737,7 @@ Respond ONLY with valid JSON:
       deferredPrompt.userChoice.then(function(choiceResult) {
         if (choiceResult.outcome === 'accepted') {
           console.log('✅ User accepted install');
-          showHomeToast('✅ SafeAlert installed!');
+          showToast('✅ SafeAlert installed!');
         }
         deferredPrompt = null;
         var banner = document.getElementById('installBanner');
@@ -8529,7 +8760,7 @@ Respond ONLY with valid JSON:
     // Handle offline/online status
     function updateOnlineStatus() {
       if (!navigator.onLine) {
-        showHomeToast('📡 You\'re offline. Some features may be limited.');
+        showToast('📡 You\'re offline. Some features may be limited.');
         document.body.classList.add('offline-mode');
       } else {
         document.body.classList.remove('offline-mode');
@@ -8537,21 +8768,159 @@ Respond ONLY with valid JSON:
     }
     
     window.addEventListener('online', function() {
-      showHomeToast('✅ Back online!');
+      showToast('✅ Back online!');
       document.body.classList.remove('offline-mode');
     });
     
     window.addEventListener('offline', function() {
-      showHomeToast('📡 You\'re offline');
+      showToast('📡 You\'re offline');
       document.body.classList.add('offline-mode');
     });
     
     // Initial online check
     updateOnlineStatus();
     
+    // =============================================
+    // SWIPE TO DISMISS - KIDNAP ALERT
+    // =============================================
+    (function initSwipeToDismiss() {
+      var banner = document.getElementById('kidnapBanner');
+      if (!banner) return;
+      
+      var startX = 0;
+      var currentX = 0;
+      var isDragging = false;
+      var threshold = 100; // pixels to swipe before dismissing
+      
+      banner.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+        currentX = startX;
+        isDragging = true;
+        banner.classList.add('swiping');
+      }, { passive: true });
+      
+      banner.addEventListener('touchmove', function(e) {
+        if (!isDragging) return;
+        currentX = e.touches[0].clientX;
+        var diffX = currentX - startX;
+        
+        // Move the banner
+        banner.style.transform = 'translateX(' + diffX + 'px)';
+        
+        // Fade based on distance
+        var opacity = 1 - Math.abs(diffX) / 300;
+        banner.style.opacity = Math.max(0.3, opacity);
+      }, { passive: true });
+      
+      banner.addEventListener('touchend', function(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        banner.classList.remove('swiping');
+        
+        var diffX = currentX - startX;
+        
+        if (Math.abs(diffX) > threshold) {
+          // Dismiss the banner
+          if (diffX > 0) {
+            banner.classList.add('dismissed');
+          } else {
+            banner.classList.add('dismissed-left');
+          }
+          
+          // Show toast
+          showToast('✓ Alert dismissed');
+          
+          // Vibrate if supported
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+          
+          // Completely hide after animation
+          setTimeout(function() {
+            banner.classList.add('hiding');
+          }, 300);
+          
+          // Store dismissal in localStorage
+          localStorage.setItem('kidnapAlertDismissed', Date.now());
+          
+        } else {
+          // Snap back
+          banner.style.transform = '';
+          banner.style.opacity = '';
+        }
+      }, { passive: true });
+      
+      // Also support mouse drag for desktop
+      banner.addEventListener('mousedown', function(e) {
+        startX = e.clientX;
+        currentX = startX;
+        isDragging = true;
+        banner.classList.add('swiping');
+        e.preventDefault();
+      });
+      
+      document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        currentX = e.clientX;
+        var diffX = currentX - startX;
+        banner.style.transform = 'translateX(' + diffX + 'px)';
+        var opacity = 1 - Math.abs(diffX) / 300;
+        banner.style.opacity = Math.max(0.3, opacity);
+      });
+      
+      document.addEventListener('mouseup', function(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        banner.classList.remove('swiping');
+        
+        var diffX = currentX - startX;
+        
+        if (Math.abs(diffX) > threshold) {
+          if (diffX > 0) {
+            banner.classList.add('dismissed');
+          } else {
+            banner.classList.add('dismissed-left');
+          }
+          showToast('✓ Alert dismissed');
+          if (navigator.vibrate) navigator.vibrate(50);
+          setTimeout(function() {
+            banner.classList.add('hiding');
+          }, 300);
+          localStorage.setItem('kidnapAlertDismissed', Date.now());
+        } else {
+          banner.style.transform = '';
+          banner.style.opacity = '';
+        }
+      });
+      
+      // Check if already dismissed today
+      var dismissed = localStorage.getItem('kidnapAlertDismissed');
+      if (dismissed) {
+        var dismissedTime = parseInt(dismissed);
+        var now = Date.now();
+        var hoursSince = (now - dismissedTime) / (1000 * 60 * 60);
+        
+        // If dismissed less than 24 hours ago, keep it hidden
+        if (hoursSince < 24) {
+          banner.classList.add('dismissed');
+          banner.classList.add('hiding');
+        }
+      }
+    })();
+    
+    // Function to show kidnap alert again (for testing or new alerts)
+    function showKidnapAlert() {
+      var banner = document.getElementById('kidnapBanner');
+      if (banner) {
+        banner.classList.remove('dismissed', 'dismissed-left', 'hiding');
+        banner.style.transform = '';
+        banner.style.opacity = '';
+        localStorage.removeItem('kidnapAlertDismissed');
+      }
+    }
+    
     console.log('🛡️ SafeAlert NG loaded successfully!');
     console.log('📱 PWA Ready: ' + ('serviceWorker' in navigator ? 'Yes' : 'No'));
   </script>
 </body>
 </html>
-

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1313,7 +1314,7 @@
       flex-direction: column;
       align-items: center;
       gap: 4px;
-      padding: 8px 16px;
+      padding: 8px 10px;
       color: var(--color-text-tertiary);
       text-decoration: none;
       font-size: 10px;
@@ -1325,6 +1326,15 @@
     
     .nav-item.active {
       color: var(--color-danger);
+    }
+    
+    /* AI tab gets special purple color */
+    #navAI.active {
+      color: #BF5AF2;
+    }
+    
+    #navAI.active::before {
+      background: #BF5AF2;
     }
     
     /* Indicator pill for active nav item */
@@ -4035,10 +4045,10 @@
     }
     
     .ai-chat-container {
-      height: calc(100vh - 200px); /* Account for header and input area */
+      height: calc(100vh - 280px); /* Account for header, input area, and bottom nav */
       overflow-y: auto;
       padding: 20px;
-      padding-bottom: 80px; /* Extra space for scrolling above input */
+      padding-bottom: 100px; /* Extra space for scrolling above input */
     }
     
     .ai-message {
@@ -4093,12 +4103,12 @@
     
     .ai-input-area {
       position: fixed;
-      bottom: 0;
+      bottom: 80px;
       left: 0;
       right: 0;
       max-width: 430px;
       margin: 0 auto;
-      padding: 16px 20px 32px;
+      padding: 16px 20px 16px;
       background: rgba(0,0,0,0.95);
       backdrop-filter: blur(20px);
       border-top: 1px solid rgba(255,255,255,0.1);
@@ -5876,7 +5886,6 @@
         </div>
         <div class="ai-header-actions">
           <div class="ai-new-chat" onclick="resetAIChat()" title="New Chat">🔄</div>
-          <div class="ai-close" onclick="switchScreen('homeScreen')">✕</div>
         </div>
       </div>
       
@@ -5933,6 +5942,10 @@
     <div class="nav-item" onclick="switchScreen('mapScreen')" id="navMap">
       <span class="nav-icon">🗺️</span>
       <span class="nav-label">Map</span>
+    </div>
+    <div class="nav-item" onclick="switchScreen('aiScreen')" id="navAI">
+      <span class="nav-icon">🤖</span>
+      <span class="nav-label">AI</span>
     </div>
     <div class="nav-item" onclick="switchScreen('hubScreen')" id="navHub">
       <span class="nav-icon">📊</span>
@@ -6159,22 +6172,24 @@
       
       if (screenId === 'homeScreen') document.getElementById('navHome').classList.add('active');
       if (screenId === 'mapScreen') document.getElementById('navMap').classList.add('active');
+      if (screenId === 'aiScreen') document.getElementById('navAI').classList.add('active');
       if (screenId === 'hubScreen') document.getElementById('navHub').classList.add('active');
       if (screenId === 'settingsScreen') document.getElementById('navSettings').classList.add('active');
       
       // For sub-screens, keep parent nav active
-      if (screenId === 'checkinScreen' || screenId === 'recordScreen' || screenId === 'reportScreen' || screenId === 'aiScreen') {
+      if (screenId === 'checkinScreen' || screenId === 'recordScreen' || screenId === 'reportScreen') {
         document.getElementById('navHome').classList.add('active');
       }
       
-      // Hide/show AI float button and bottom nav based on screen
+      // Hide/show AI float button based on screen
       var aiBtn = document.getElementById('aiFloatBtn');
       var bottomNav = document.querySelector('.bottom-nav');
       
       if (screenId === 'aiScreen') {
-        // Hide AI button and bottom nav when AI screen is open
+        // Hide AI button when AI screen is open (not needed since we have AI tab)
         if (aiBtn) aiBtn.style.display = 'none';
-        if (bottomNav) bottomNav.style.display = 'none';
+        // Keep bottom nav visible so user can switch tabs
+        if (bottomNav) bottomNav.style.display = 'flex';
         
         // Focus the AI input after a short delay (for animation)
         setTimeout(function() {
@@ -6182,7 +6197,7 @@
           if (aiInput) aiInput.focus();
         }, 300);
       } else {
-        // Show them on other screens
+        // Show AI button on other screens
         if (aiBtn) aiBtn.style.display = 'flex';
         if (bottomNav) bottomNav.style.display = 'flex';
       }
@@ -8914,3 +8929,4 @@ Respond ONLY with valid JSON:
   </script>
 </body>
 </html>
+

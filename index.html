@@ -1,4 +1,41 @@
+Skip to content
+Navigation Menu
+ruzzzo123-star
+renttrack-backend
 
+Type / to search
+Code
+Issues
+Pull requests
+Actions
+Projects
+Security
+Insights
+Settings
+Files
+Go to file
+t
+.gitignore
+email-reset.js
+index (3).html
+package-lock.json
+package.json
+server.js
+server.js.backup
+temp_forgot.js
+renttrack-backend
+/index (3).html
+ruzzzo123-star
+ruzzzo123-star
+Add files via upload
+21a2dcb
+ · 
+now
+
+Code
+
+Blame
+11603 lines (10105 loc) · 382 KB
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1314,7 +1351,7 @@
       flex-direction: column;
       align-items: center;
       gap: 4px;
-      padding: 8px 10px;
+      padding: 8px 16px;
       color: var(--color-text-tertiary);
       text-decoration: none;
       font-size: 10px;
@@ -1326,15 +1363,6 @@
     
     .nav-item.active {
       color: var(--color-danger);
-    }
-    
-    /* AI tab gets special purple color */
-    #navAI.active {
-      color: #BF5AF2;
-    }
-    
-    #navAI.active::before {
-      background: #BF5AF2;
     }
     
     /* Indicator pill for active nav item */
@@ -1511,10 +1539,24 @@
     .map-container {
       position: relative;
       width: 100%;
-      height: 100vh;
+      height: calc(100vh - env(safe-area-inset-bottom, 0px));
+      height: 100dvh; /* Dynamic viewport height - accounts for mobile UI */
       background: #0a0a0a;
       overflow: hidden;
       touch-action: none;
+    }
+    
+    /* Ensure map fits on all devices */
+    @supports (height: 100dvh) {
+      .map-container {
+        height: calc(100dvh - 80px); /* Account for bottom nav */
+      }
+    }
+    
+    @supports not (height: 100dvh) {
+      .map-container {
+        height: calc(100vh - 80px - env(safe-area-inset-bottom, 20px));
+      }
     }
     
     .map-svg {
@@ -1728,7 +1770,7 @@
     .map-legend {
       position: absolute;
       left: 16px;
-      bottom: 280px;
+      bottom: 180px;
       background: rgba(28,28,30,0.95);
       backdrop-filter: blur(20px);
       border-radius: 14px;
@@ -1761,7 +1803,7 @@
     
     .marker-popup {
       position: absolute;
-      bottom: 280px;
+      bottom: 180px;
       left: 16px;
       right: 16px;
       background: rgba(28,28,30,0.98);
@@ -1839,7 +1881,7 @@
     /* Trip Panels - Collapsible Design */
     .trip-panel, .start-trip-panel {
       position: absolute;
-      bottom: 90px;
+      bottom: 16px;
       left: 16px;
       right: 16px;
       background: rgba(28,28,30,0.98);
@@ -1848,7 +1890,7 @@
       border: 1px solid rgba(255,255,255,0.1);
       z-index: 20;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      max-height: 70vh;
+      max-height: 60vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -2253,6 +2295,846 @@
     }
     
     /* =============================================
+       SAFE ROUTE NAVIGATION
+       ============================================= */
+    
+    /* Mode Toggle - Trip Monitor vs Safe Route */
+    .map-mode-toggle {
+      position: absolute;
+      top: 110px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      background: rgba(28,28,30,0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 12px;
+      padding: 4px;
+      border: 1px solid rgba(255,255,255,0.1);
+      z-index: 16;
+    }
+    
+    .mode-tab {
+      flex: 1;
+      padding: 10px 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #8E8E93;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    
+    .mode-tab.active {
+      background: #2C2C2E;
+      color: #fff;
+    }
+    
+    .mode-tab.safe-route.active {
+      background: rgba(50,215,75,0.2);
+      color: #32D74B;
+    }
+    
+    /* Safe Route Planning Panel */
+    .safe-route-panel {
+      position: absolute;
+      bottom: 90px;
+      left: 16px;
+      right: 16px;
+      background: rgba(28,28,30,0.98);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      border: 1px solid rgba(50,215,75,0.3);
+      z-index: 20;
+      max-height: 45vh;
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+    }
+    
+    .safe-route-panel.active {
+      display: flex;
+    }
+    
+    /* Compact when routes not shown */
+    .safe-route-panel.compact {
+      max-height: 180px;
+    }
+    
+    /* Close button */
+    .safe-route-close {
+      width: 28px;
+      height: 28px;
+      background: #2C2C2E;
+      border: none;
+      border-radius: 50%;
+      color: #8E8E93;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    
+    .safe-route-close:active {
+      background: #3C3C3E;
+      transform: scale(0.95);
+    }
+    
+    .safe-route-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .safe-route-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .safe-route-title span:first-child {
+      font-size: 18px;
+    }
+    
+    .safe-route-title h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0;
+    }
+    
+    .time-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: #1C1C1E;
+      border-radius: 16px;
+      font-size: 11px;
+      color: #8E8E93;
+    }
+    
+    .time-indicator.day {
+      background: rgba(255,214,10,0.15);
+      color: #FFD60A;
+    }
+    
+    .time-indicator.night {
+      background: rgba(191,90,242,0.15);
+      color: #BF5AF2;
+    }
+    
+    .safe-route-content {
+      padding: 10px 16px 14px;
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      max-height: calc(40vh - 50px);
+      overscroll-behavior: contain;
+    }
+    
+    /* Route Input Fields */
+    .route-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .route-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #1C1C1E;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .route-input-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    .route-input-dot.origin {
+      background: #64D2FF;
+      box-shadow: 0 0 10px rgba(100,210,255,0.5);
+    }
+    
+    .route-input-dot.destination {
+      background: #32D74B;
+      box-shadow: 0 0 10px rgba(50,215,75,0.5);
+    }
+    
+    .route-input-field {
+      flex: 1;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+    
+    .route-input-field::placeholder {
+      color: #636366;
+    }
+    
+    /* Find Routes Button (inline) */
+    .find-routes-btn {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #32D74B, #28a745);
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    
+    .find-routes-btn:active {
+      transform: scale(0.95);
+    }
+    
+    /* Find Routes Button (full width) */
+    .find-routes-full-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #32D74B, #28a745);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 15px rgba(50,215,75,0.3);
+      transition: all 0.2s;
+    }
+    
+    .find-routes-full-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .find-routes-full-btn.hidden {
+      display: none;
+    }
+    
+    .route-swap-btn {
+      position: absolute;
+      right: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      background: #2C2C2E;
+      border: none;
+      border-radius: 50%;
+      color: #8E8E93;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Route Options - Horizontal Scroll */
+    .route-options {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      margin: 0 -16px 12px;
+      padding: 0 16px 8px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    
+    .route-options::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .route-option {
+      flex-shrink: 0;
+      width: 110px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 8px;
+      background: #1C1C1E;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    
+    .route-option:active {
+      transform: scale(0.98);
+    }
+    
+    .route-option.selected {
+      border-color: rgba(50,215,75,0.5);
+      background: rgba(50,215,75,0.1);
+    }
+    
+    .route-option.fastest.selected {
+      border-color: rgba(100,210,255,0.5);
+      background: rgba(100,210,255,0.1);
+    }
+    
+    .route-option-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    
+    .route-option.safest .route-option-icon {
+      background: rgba(50,215,75,0.15);
+    }
+    
+    .route-option.fastest .route-option-icon {
+      background: rgba(100,210,255,0.15);
+    }
+    
+    .route-option.balanced .route-option-icon {
+      background: rgba(255,159,10,0.15);
+    }
+    
+    .route-option-info {
+      width: 100%;
+    }
+    
+    .route-option-name {
+      font-size: 11px;
+      font-weight: 600;
+      display: block;
+    }
+    
+    .route-option-name span {
+      display: none;
+    }
+    
+    .route-option-meta {
+      font-size: 10px;
+      color: #8E8E93;
+      margin-top: 2px;
+    }
+    
+    .route-option-avoids,
+    .route-option-passes {
+      display: none;
+    }
+    
+    /* Safety Score Badge - Compact */
+    .safety-score {
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      margin-top: 6px;
+      display: inline-block;
+    }
+    
+    .safety-score.grade-a {
+      background: rgba(50,215,75,0.2);
+      color: #32D74B;
+    }
+    
+    .safety-score.grade-b {
+      background: rgba(100,210,255,0.2);
+      color: #64D2FF;
+    }
+    
+    .safety-score.grade-c {
+      background: rgba(255,159,10,0.2);
+      color: #FF9F0A;
+    }
+    
+    .safety-score.grade-d {
+      background: rgba(255,55,95,0.2);
+      color: #FF375F;
+    }
+    
+    /* Safe Havens Section */
+    .safe-havens-section {
+      margin-bottom: 16px;
+    }
+    
+    .safe-havens-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    
+    .safe-havens-title {
+      font-size: 12px;
+      color: #8E8E93;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    
+    .safe-havens-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #64D2FF;
+      cursor: pointer;
+    }
+    
+    .safe-havens-list {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .safe-havens-list::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .safe-haven-chip {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #1C1C1E;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .safe-haven-chip.active {
+      background: rgba(50,215,75,0.15);
+      border-color: rgba(50,215,75,0.3);
+    }
+    
+    .safe-haven-chip span:first-child {
+      font-size: 18px;
+    }
+    
+    .safe-haven-chip-info {
+      text-align: left;
+    }
+    
+    .safe-haven-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    
+    .safe-haven-distance {
+      font-size: 11px;
+      color: #8E8E93;
+    }
+    
+    /* Danger Zone Alert in Route */
+    .danger-zone-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,55,95,0.1);
+      border: 1px solid rgba(255,55,95,0.3);
+      border-radius: 12px;
+      margin-bottom: 14px;
+    }
+    
+    .danger-zone-warning-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    
+    .danger-zone-warning-text {
+      flex: 1;
+    }
+    
+    .danger-zone-warning-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #FF375F;
+    }
+    
+    .danger-zone-warning-desc {
+      font-size: 12px;
+      color: #8E8E93;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    
+    /* Start Safe Route Button */
+    .start-safe-route-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #32D74B, #28a745);
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 30px rgba(50,215,75,0.3);
+      transition: all 0.2s;
+    }
+    
+    .start-safe-route-btn:active {
+      transform: scale(0.98);
+    }
+    
+    /* Danger Zone Overlays on Map */
+    .danger-zone {
+      fill: rgba(255,55,95,0.15);
+      stroke: rgba(255,55,95,0.4);
+      stroke-width: 2;
+      stroke-dasharray: 8,4;
+      pointer-events: none;
+      animation: dangerPulse 2s ease-in-out infinite;
+    }
+    
+    .danger-zone.high {
+      fill: rgba(255,55,95,0.25);
+      stroke: rgba(255,55,95,0.6);
+    }
+    
+    .danger-zone.medium {
+      fill: rgba(255,159,10,0.15);
+      stroke: rgba(255,159,10,0.4);
+    }
+    
+    @keyframes dangerPulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+    
+    /* Safe Haven Markers */
+    .safe-haven-marker {
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .safe-haven-marker:hover {
+      transform: scale(1.2);
+    }
+    
+    /* Route Path Styles */
+    .safe-route-path {
+      fill: none;
+      stroke: #32D74B;
+      stroke-width: 5;
+      stroke-linecap: round;
+      filter: url(#glow);
+    }
+    
+    .fast-route-path {
+      fill: none;
+      stroke: #64D2FF;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-dasharray: 10,5;
+      opacity: 0.6;
+    }
+    
+    /* Map Controls Addition - Safe Havens Toggle */
+    .map-btn.safe-havens {
+      background: rgba(50,215,75,0.2);
+      border-color: rgba(50,215,75,0.4);
+    }
+    
+    .map-btn.safe-havens.active {
+      background: rgba(50,215,75,0.4);
+    }
+    
+    /* Legend Updates for Safe Route Mode */
+    .map-legend.safe-route-mode {
+      bottom: 250px;
+    }
+    
+    .map-legend.safe-route-mode .legend-item.haven {
+      color: #32D74B;
+    }
+    
+    /* =============================================
+       FLEXBOX SCREEN LAYOUTS (Sticky Headers)
+       ============================================= */
+    
+    /* Home Screen */
+    #homeScreen.screen {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      min-height: auto !important;
+      padding: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    
+    #homeScreen.screen.active {
+      display: flex !important;
+    }
+    
+    .home-fixed-header {
+      flex-shrink: 0;
+      background: rgba(0, 0, 0, 0.95);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      padding: 12px 20px;
+      padding-top: calc(12px + env(safe-area-inset-top, 0px));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 10;
+    }
+    
+    .home-fixed-header .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+    
+    .home-fixed-header .header h1 {
+      font-size: 24px;
+      margin: 0;
+    }
+    
+    .home-fixed-header .header p {
+      color: #8E8E93;
+      font-size: 13px;
+      margin: 0;
+    }
+    
+    .home-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px;
+      padding-bottom: 100px;
+    }
+    
+    /* Hub Screen */
+    #hubScreen.screen {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      min-height: auto !important;
+      padding: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    
+    #hubScreen.screen.active {
+      display: flex !important;
+    }
+    
+    .hub-fixed-header {
+      flex-shrink: 0;
+      background: #000;
+      padding: 16px 20px;
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 10;
+    }
+    
+    .hub-fixed-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 12px 0;
+    }
+    
+    .hub-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px;
+      padding-bottom: 100px;
+    }
+    
+    /* Check-in Screen */
+    #checkinScreen.screen {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      min-height: auto !important;
+      padding: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    
+    #checkinScreen.screen.active {
+      display: flex !important;
+    }
+    
+    .checkin-fixed-header {
+      flex-shrink: 0;
+      background: #000;
+      padding: 12px 20px;
+      padding-top: calc(12px + env(safe-area-inset-top, 0px));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 10;
+    }
+    
+    .checkin-fixed-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 8px 0 0 0;
+    }
+    
+    .checkin-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px;
+      padding-bottom: 100px;
+    }
+    
+    /* Record Screen */
+    #recordScreen.screen {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      min-height: auto !important;
+      padding: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    
+    #recordScreen.screen.active {
+      display: flex !important;
+    }
+    
+    .record-fixed-header {
+      flex-shrink: 0;
+      background: #000;
+      padding: 12px 20px;
+      padding-top: calc(12px + env(safe-area-inset-top, 0px));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 10;
+    }
+    
+    .record-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .record-fixed-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 8px 0 0 0;
+    }
+    
+    .record-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px;
+      padding-bottom: 100px;
+    }
+    
+    /* Report Screen */
+    #reportScreen.screen {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      min-height: auto !important;
+      padding: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    
+    #reportScreen.screen.active {
+      display: flex !important;
+    }
+    
+    .report-fixed-header {
+      flex-shrink: 0;
+      background: #000;
+      padding: 12px 20px;
+      padding-top: calc(12px + env(safe-area-inset-top, 0px));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 10;
+    }
+    
+    .report-fixed-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 8px 0 0 0;
+    }
+    
+    .report-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px;
+      padding-bottom: 100px;
+    }
+    
+    /* AI Screen */
+    #aiScreen.screen {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      min-height: auto !important;
+      padding: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    
+    #aiScreen.screen.active {
+      display: flex !important;
+    }
+    
+    .ai-header {
+      flex-shrink: 0;
+      padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    }
+    
+    .ai-chat-container {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .ai-input-area {
+      flex-shrink: 0;
+    }
+    
+    /* =============================================
        HUB SCREEN STYLES
        ============================================= */
     .page-title {
@@ -2270,17 +3152,18 @@
       max-width: 430px;
       margin: 0 auto;
       z-index: 100;
-      background: rgba(0, 0, 0, 0.92);
+      background: rgba(0, 0, 0, 0.95);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       padding: 16px 20px;
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
       font-size: 28px;
       font-weight: 700;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
     
     .page-content-sticky {
-      padding-top: 70px;
+      padding-top: calc(70px + env(safe-area-inset-top, 0px));
       padding-left: 20px;
       padding-right: 20px;
       position: relative;
@@ -3662,6 +4545,46 @@
     /* =============================================
        SETTINGS SCREEN STYLES
        ============================================= */
+    
+    /* Settings screen uses flexbox - header stays, content scrolls */
+    #settingsScreen.screen {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      min-height: auto !important;
+      padding: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    
+    #settingsScreen.screen.active {
+      display: flex !important;
+    }
+    
+    .settings-fixed-header {
+      flex-shrink: 0;
+      background: #000;
+      padding: 16px 20px;
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 10;
+    }
+    
+    .settings-fixed-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0;
+    }
+    
+    .settings-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px;
+      padding-bottom: 100px;
+    }
+    
     .settings-group {
       margin-bottom: 20px;
     }
@@ -3808,8 +4731,397 @@
       margin-top: 10px;
     }
     
-    /* Premium Feature Card */
-    .premium-card {
+    /* Settings Input Styles */
+    .settings-input {
+      width: 100%;
+      padding: 14px 16px;
+      background: #1C1C1E;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      font-family: inherit;
+    }
+    
+    .settings-input:focus {
+      border-color: rgba(100,210,255,0.4);
+    }
+    
+    .settings-input option {
+      background: #1C1C1E;
+      color: #fff;
+    }
+    
+    /* Contact Edit Cards */
+    .contact-edit-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #1C1C1E;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .contact-edit-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    
+    .contact-edit-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .contact-name-input,
+    .contact-phone-input,
+    .contact-type-select {
+      width: 100%;
+      padding: 8px 12px;
+      background: #2C2C2E;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    
+    .contact-delete {
+      font-size: 18px;
+      cursor: pointer;
+      padding: 8px;
+    }
+    
+    .settings-add-btn {
+      width: 100%;
+      padding: 14px;
+      background: #2C2C2E;
+      border: 2px dashed rgba(255,255,255,0.2);
+      border-radius: 14px;
+      color: #8E8E93;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    /* Toggle Group */
+    .settings-toggle-group {
+      background: #1C1C1E;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    
+    .settings-toggle-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .settings-toggle-item:last-child {
+      border-bottom: none;
+    }
+    
+    /* Premium Hero */
+    .premium-hero {
+      text-align: center;
+      padding: 30px 20px;
+      background: linear-gradient(135deg, rgba(191,90,242,0.15), rgba(191,90,242,0.02));
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .premium-icon {
+      font-size: 64px;
+      margin-bottom: 12px;
+    }
+    
+    .premium-features {
+      background: #1C1C1E;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    
+    .premium-feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .premium-feature:last-child {
+      border-bottom: none;
+    }
+    
+    .premium-feature-icon {
+      font-size: 24px;
+    }
+    
+    .premium-pricing {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .premium-plan {
+      flex: 1;
+      background: #1C1C1E;
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      border: 2px solid transparent;
+    }
+    
+    .premium-plan.popular {
+      border-color: #BF5AF2;
+      position: relative;
+    }
+    
+    .plan-badge {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #BF5AF2;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 10px;
+    }
+    
+    .plan-name {
+      font-size: 14px;
+      color: #8E8E93;
+      margin-bottom: 8px;
+    }
+    
+    .plan-price {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+    }
+    
+    .plan-price span {
+      font-size: 14px;
+      color: #8E8E93;
+    }
+    
+    .plan-savings {
+      font-size: 12px;
+      color: #32D74B;
+      margin-top: 4px;
+    }
+    
+    .settings-save-btn.premium-btn {
+      background: linear-gradient(135deg, #BF5AF2, #9945FF);
+    }
+    
+    /* Location Status */
+    .location-status-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(50,215,75,0.1);
+      border: 1px solid rgba(50,215,75,0.3);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+    
+    .location-status-icon {
+      font-size: 28px;
+    }
+    
+    /* SOS Preview */
+    .sos-preview {
+      text-align: center;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+    
+    .sos-preview-btn {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #FF375F, #c41e3a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      box-shadow: 0 8px 30px rgba(255,55,95,0.4);
+    }
+    
+    /* Safe Word */
+    .safeword-intro {
+      text-align: center;
+      padding: 30px;
+      background: linear-gradient(135deg, rgba(100,210,255,0.1), rgba(100,210,255,0.02));
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .settings-test-btn {
+      width: 100%;
+      padding: 14px;
+      background: #2C2C2E;
+      border: none;
+      border-radius: 14px;
+      color: #64D2FF;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    
+    /* How It Works */
+    .how-it-works-section {
+      padding: 10px 0;
+    }
+    
+    .how-step {
+      display: flex;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .how-step:last-child {
+      border-bottom: none;
+    }
+    
+    .how-step-number {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #FF375F, #c41e3a);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    
+    /* Privacy */
+    .privacy-badge {
+      display: inline-block;
+      background: rgba(50,215,75,0.15);
+      color: #32D74B;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    
+    .settings-secondary-btn {
+      width: 100%;
+      padding: 14px;
+      background: #2C2C2E;
+      border: none;
+      border-radius: 14px;
+      color: #64D2FF;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    
+    /* Support */
+    .support-hero {
+      text-align: center;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+    
+    .support-options {
+      background: #1C1C1E;
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    
+    .support-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer;
+    }
+    
+    .support-option:last-child {
+      border-bottom: none;
+    }
+    
+    .support-option:active {
+      background: rgba(255,255,255,0.05);
+    }
+    
+    .support-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    
+    .faq-section {
+      margin-top: 20px;
+    }
+    
+    .faq-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      background: #1C1C1E;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .faq-arrow {
+      color: #8E8E93;
+      transition: transform 0.2s;
+    }
+    
+    .faq-answer {
+      display: none;
+      padding: 12px 16px;
+      background: #2C2C2E;
+      border-radius: 10px;
+      margin-top: -4px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #8E8E93;
+      line-height: 1.5;
+    }
       background: linear-gradient(135deg, rgba(191,90,242,0.2), rgba(191,90,242,0.05));
       border: 1px solid rgba(191,90,242,0.3);
       border-radius: 16px;
@@ -3927,14 +5239,26 @@
       align-items: center;
       justify-content: center;
       font-size: 24px;
-      cursor: pointer;
+      cursor: grab;
       box-shadow: 
         0 8px 30px rgba(191,90,242,0.5),
         inset 0 2px 4px rgba(255,255,255,0.2);
       z-index: 90;
       animation: aiFloat 3s ease-in-out infinite;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: box-shadow 0.3s, transform 0.15s;
       border: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    
+    .ai-float-btn.dragging {
+      cursor: grabbing;
+      animation: none;
+      transform: scale(1.1);
+      box-shadow: 
+        0 12px 40px rgba(191,90,242,0.7),
+        inset 0 2px 4px rgba(255,255,255,0.2);
     }
     
     @keyframes aiFloat {
@@ -3942,8 +5266,8 @@
       50% { transform: translateY(-5px); }
     }
     
-    .ai-float-btn:active {
-      transform: scale(0.9);
+    .ai-float-btn:active:not(.dragging) {
+      transform: scale(0.95);
     }
     
     .ai-float-btn.listening {
@@ -4045,10 +5369,10 @@
     }
     
     .ai-chat-container {
-      height: calc(100vh - 280px); /* Account for header, input area, and bottom nav */
+      height: calc(100vh - 200px); /* Account for header and input area */
       overflow-y: auto;
       padding: 20px;
-      padding-bottom: 100px; /* Extra space for scrolling above input */
+      padding-bottom: 80px; /* Extra space for scrolling above input */
     }
     
     .ai-message {
@@ -4103,12 +5427,12 @@
     
     .ai-input-area {
       position: fixed;
-      bottom: 80px;
+      bottom: 0;
       left: 0;
       right: 0;
       max-width: 430px;
       margin: 0 auto;
-      padding: 16px 20px 16px;
+      padding: 16px 20px 32px;
       background: rgba(0,0,0,0.95);
       backdrop-filter: blur(20px);
       border-top: 1px solid rgba(255,255,255,0.1);
@@ -4278,32 +5602,10 @@
          ============================================= -->
     <div class="screen active" id="homeScreen">
       
-      <!-- STATIC HEADER - Does NOT scroll -->
-      <div class="static-header glass-heavy">
-        <!-- Status Bar at TOP -->
-        <div class="status-bar">
-          <div class="status-left">
-            <span class="status-time" id="time">9:41</span>
-          </div>
-          <div class="status-right">
-            <div class="signal-bars">
-              <div class="signal-bar"></div>
-              <div class="signal-bar"></div>
-              <div class="signal-bar"></div>
-              <div class="signal-bar"></div>
-            </div>
-            <span class="wifi-icon">📶</span>
-            <div class="battery-container">
-              <div class="battery-body">
-                <div class="battery-level"></div>
-              </div>
-              <div class="battery-cap"></div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- SafeAlert Banner below time -->
-        <div class="header stagger-item">
+      <!-- Fixed Home Header -->
+      <div class="home-fixed-header">
+        <!-- SafeAlert Banner -->
+        <div class="header">
           <div class="logo">🛡️</div>
           <div>
             <h1>SafeAlert</h1>
@@ -4312,7 +5614,7 @@
         </div>
         
         <!-- COMPACT Location Bar -->
-        <div class="location-compact stagger-item" onclick="openStateSelector()">
+        <div class="location-compact" onclick="openStateSelector()">
           <div class="location-compact-icon">📍</div>
           <div class="location-compact-text">
             <div class="location-compact-city" id="currentCity">Ikeja</div>
@@ -4321,6 +5623,9 @@
           <span class="location-compact-change">Change</span>
         </div>
       </div>
+      
+      <!-- Scrollable Home Content -->
+      <div class="home-scroll-area">
       
       <!-- Hidden Dynamic Island for emergency state (appears when active) -->
       <div class="island" id="island" style="display: none;">
@@ -4332,9 +5637,6 @@
           </div>
         </div>
       </div>
-      
-      <!-- SCROLLABLE CONTENT -->
-      <div class="scrollable-content">
         
       <!-- KIDNAPPING ALERT BANNER - More Prominent (Swipe to dismiss) -->
         <div class="kidnap-alert-banner stagger-item" id="kidnapBanner">
@@ -4389,9 +5691,9 @@
             <div class="quick-action-icon" style="background: rgba(50,215,75,0.15)">📢</div>
             <div class="quick-action-label">Report</div>
           </div>
-          <div class="quick-action" onclick="switchScreen('mapScreen')">
-            <div class="quick-action-icon" style="background: rgba(100,210,255,0.15)">📍</div>
-            <div class="quick-action-label">Trip</div>
+          <div class="quick-action" onclick="openSafeRoute()">
+            <div class="quick-action-icon" style="background: rgba(50,215,75,0.15)">🛡️</div>
+            <div class="quick-action-label">Safe Route</div>
           </div>
         </div>
         
@@ -4438,8 +5740,8 @@
             🇳🇬 NDPR Compliant • Serving all 36 States + FCT
           </div>
         </div>
-      </div>
-    </div>
+      </div><!-- end home-scroll-area -->
+    </div><!-- end homeScreen -->
     
     <!-- STATE SELECTOR MODAL - All 36 States + FCT -->
     <div class="state-selector-modal" id="stateModal">
@@ -4560,6 +5862,64 @@
             <text x="340" y="560" fill="#3a3a3c" font-size="11" font-weight="600">Lekki</text>
             <text x="230" y="540" fill="#3a3a3c" font-size="11" font-weight="600">Ikoyi</text>
             
+            <!-- DANGER ZONES (hidden by default, shown in Safe Route mode) -->
+            <g id="dangerZonesGroup" style="display:none">
+              <!-- Mushin - High Risk Area -->
+              <ellipse class="danger-zone high" cx="200" cy="380" rx="50" ry="45" id="dangerMushin"/>
+              <!-- Oshodi Under Bridge - High Risk -->
+              <ellipse class="danger-zone high" cx="110" cy="420" rx="40" ry="35" id="dangerOshodi"/>
+              <!-- Ikeja Computer Village area - Medium Risk (robbery) -->
+              <ellipse class="danger-zone medium" cx="130" cy="130" rx="35" ry="30" id="dangerIkeja"/>
+              <!-- Isolated Road Area - Night Risk -->
+              <ellipse class="danger-zone medium" cx="160" cy="280" rx="30" ry="25" id="dangerIsolated"/>
+            </g>
+            
+            <!-- SAFE HAVENS (hidden by default, toggled on) -->
+            <g id="safeHavensGroup" style="display:none">
+              <!-- Police Stations -->
+              <g class="safe-haven-marker" id="havenPolice1" transform="translate(280, 420)" onclick="showHavenInfo('police1')">
+                <circle cx="0" cy="0" r="16" fill="#32D74B" stroke="#fff" stroke-width="2"/>
+                <text x="0" y="5" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🚔</text>
+              </g>
+              <g class="safe-haven-marker" id="havenPolice2" transform="translate(170, 150)" onclick="showHavenInfo('police2')">
+                <circle cx="0" cy="0" r="16" fill="#32D74B" stroke="#fff" stroke-width="2"/>
+                <text x="0" y="5" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🚔</text>
+              </g>
+              
+              <!-- Hospitals -->
+              <g class="safe-haven-marker" id="havenHospital1" transform="translate(320, 340)" onclick="showHavenInfo('hospital1')">
+                <circle cx="0" cy="0" r="16" fill="#FF375F" stroke="#fff" stroke-width="2"/>
+                <text x="0" y="5" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🏥</text>
+              </g>
+              <g class="safe-haven-marker" id="havenHospital2" transform="translate(260, 500)" onclick="showHavenInfo('hospital2')">
+                <circle cx="0" cy="0" r="16" fill="#FF375F" stroke="#fff" stroke-width="2"/>
+                <text x="0" y="5" text-anchor="middle" fill="white" font-size="12" font-weight="bold">🏥</text>
+              </g>
+              
+              <!-- Fuel Stations (24hr, well lit) -->
+              <g class="safe-haven-marker" id="havenFuel1" transform="translate(200, 250)" onclick="showHavenInfo('fuel1')">
+                <circle cx="0" cy="0" r="14" fill="#FF9F0A" stroke="#fff" stroke-width="2"/>
+                <text x="0" y="4" text-anchor="middle" fill="white" font-size="10" font-weight="bold">⛽</text>
+              </g>
+              <g class="safe-haven-marker" id="havenFuel2" transform="translate(310, 480)" onclick="showHavenInfo('fuel2')">
+                <circle cx="0" cy="0" r="14" fill="#FF9F0A" stroke="#fff" stroke-width="2"/>
+                <text x="0" y="4" text-anchor="middle" fill="white" font-size="10" font-weight="bold">⛽</text>
+              </g>
+              
+              <!-- Churches/Religious Centers (community refuge) -->
+              <g class="safe-haven-marker" id="havenChurch1" transform="translate(240, 320)" onclick="showHavenInfo('church1')">
+                <circle cx="0" cy="0" r="14" fill="#BF5AF2" stroke="#fff" stroke-width="2"/>
+                <text x="0" y="4" text-anchor="middle" fill="white" font-size="10" font-weight="bold">⛪</text>
+              </g>
+            </g>
+            
+            <!-- SAFE ROUTE PATH (alternative to dangerous route) -->
+            <path id="safeRoutePath" d="M200,300 Q280,280 320,340 Q340,420 320,500 Q310,530 300,520" 
+                  class="safe-route-path" style="display:none"/>
+            <!-- FAST ROUTE PATH (might pass through danger) -->
+            <path id="fastRoutePath" d="M200,300 Q200,360 200,400 Q230,460 300,520" 
+                  class="fast-route-path" style="display:none"/>
+            
             <!-- Main roads -->
             <path class="map-road map-road-main" d="M-50,250 Q120,250 200,220 T450,250" id="road-main1"/>
             <path class="map-road map-road-main" d="M200,-50 Q200,150 200,300 T200,750" id="road-main2"/>
@@ -4671,12 +6031,25 @@
           </div>
         </div>
         
+        <!-- Mode Toggle - Trip Monitor vs Safe Route -->
+        <div class="map-mode-toggle" id="mapModeToggle">
+          <div class="mode-tab active" id="modeTrip" onclick="switchMapMode('trip')">
+            <span>🗺️</span>
+            <span>Trip Monitor</span>
+          </div>
+          <div class="mode-tab safe-route" id="modeSafeRoute" onclick="switchMapMode('saferoute')">
+            <span>🛡️</span>
+            <span>Safe Route</span>
+          </div>
+        </div>
+        
         <!-- Map controls -->
         <div class="map-controls">
           <div class="map-btn" onclick="centerOnUser()" id="centerBtn">📍</div>
           <div class="map-btn" onclick="zoomIn()">+</div>
           <div class="map-btn" onclick="zoomOut()">−</div>
           <div class="map-btn" onclick="toggleMapStyle()" id="styleBtn">🗺️</div>
+          <div class="map-btn safe-havens" onclick="toggleSafeHavens()" id="safeHavensBtn" title="Safe Havens">🏥</div>
         </div>
         
         <div class="zoom-indicator" id="zoomIndicator">100%</div>
@@ -4688,6 +6061,8 @@
           <div class="legend-item"><div class="legend-dot" style="background:#FF9F0A"></div><span>Caution</span></div>
           <div class="legend-item"><div class="legend-dot" style="background:#32D74B"></div><span>Safe Zone</span></div>
           <div class="legend-item"><div class="legend-dot" style="background:#64D2FF"></div><span>Your Location</span></div>
+          <div class="legend-item haven" style="display:none;" id="legendHavens"><div class="legend-dot" style="background:#32D74B"></div><span>🏥 Safe Havens</span></div>
+          <div class="legend-item" style="display:none;" id="legendDanger"><div class="legend-dot" style="background:rgba(255,55,95,0.3);border:2px dashed #FF375F"></div><span>Danger Zone</span></div>
         </div>
         
         <!-- Marker Info Popup - AI Enhanced -->
@@ -4714,6 +6089,137 @@
           <div class="popup-actions" style="margin-top:16px;">
             <button class="popup-btn" onclick="askAIAboutMarker()">🤖 Ask AI</button>
             <button class="popup-btn secondary" onclick="shareAlert()">📤 Share</button>
+          </div>
+        </div>
+        
+        <!-- SAFE ROUTE PLANNING PANEL -->
+        <div class="safe-route-panel" id="safeRoutePanel">
+          <div class="safe-route-header">
+            <div class="safe-route-title">
+              <span>🛡️</span>
+              <h3>Safe Route</h3>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="time-indicator day" id="timeIndicator">
+                <span>☀️</span>
+                <span id="timeIndicatorText">Daytime</span>
+              </div>
+              <button class="safe-route-close" onclick="closeSafeRoutePanel()">✕</button>
+            </div>
+          </div>
+          
+          <div class="safe-route-content">
+            <!-- Route Input Fields -->
+            <div class="route-inputs" style="position:relative;">
+              <div class="route-input-row">
+                <div class="route-input-dot origin"></div>
+                <input type="text" class="route-input-field" id="safeRouteOrigin" placeholder="Current Location" value="Surulere, Lagos">
+              </div>
+              <div class="route-input-row">
+                <div class="route-input-dot destination"></div>
+                <input type="text" class="route-input-field" id="safeRouteDest" placeholder="Where to?" onkeypress="if(event.key==='Enter')findSafeRoutes()">
+                <button class="find-routes-btn" onclick="findSafeRoutes()">→</button>
+              </div>
+              <button class="route-swap-btn" onclick="swapRouteInputs()">⇅</button>
+            </div>
+            
+            <!-- Find Routes Button (full width) -->
+            <button class="find-routes-full-btn" id="findRoutesBtn" onclick="findSafeRoutes()">
+              <span>🔍</span>
+              <span>Find Safe Routes</span>
+            </button>
+            
+            <!-- Danger Zone Warning (shows when route passes through danger) -->
+            <div class="danger-zone-warning" id="dangerZoneWarning" style="display:none;">
+              <span class="danger-zone-warning-icon">⚠️</span>
+              <div class="danger-zone-warning-text">
+                <div class="danger-zone-warning-title">Danger Zones Detected</div>
+                <div class="danger-zone-warning-desc" id="dangerZoneDesc">Your fastest route passes through Mushin and Oshodi which have high incident reports. We recommend the safer alternative.</div>
+              </div>
+            </div>
+            
+            <!-- Route Options -->
+            <div class="route-options" id="routeOptions" style="display:none;">
+              <div class="route-option safest selected" onclick="selectRoute('safest')">
+                <div class="route-option-icon">🛡️</div>
+                <div class="route-option-info">
+                  <div class="route-option-name">
+                    Safest Route
+                    <span style="color:#32D74B;font-size:11px;">RECOMMENDED</span>
+                  </div>
+                  <div class="route-option-meta" id="safestRouteMeta">22 min • 7.8 km</div>
+                  <div class="route-option-avoids" id="safestRouteAvoids">✓ Avoids: Mushin, Oshodi Under Bridge</div>
+                </div>
+                <div class="safety-score grade-a" id="safestScore">A+</div>
+              </div>
+              
+              <div class="route-option balanced" onclick="selectRoute('balanced')">
+                <div class="route-option-icon">⚖️</div>
+                <div class="route-option-info">
+                  <div class="route-option-name">Balanced Route</div>
+                  <div class="route-option-meta" id="balancedRouteMeta">18 min • 6.2 km</div>
+                  <div class="route-option-avoids">✓ Avoids: Oshodi Under Bridge</div>
+                </div>
+                <div class="safety-score grade-b" id="balancedScore">B</div>
+              </div>
+              
+              <div class="route-option fastest" onclick="selectRoute('fastest')">
+                <div class="route-option-icon">⚡</div>
+                <div class="route-option-info">
+                  <div class="route-option-name">Fastest Route</div>
+                  <div class="route-option-meta" id="fastestRouteMeta">14 min • 5.1 km</div>
+                  <div class="route-option-passes" id="fastestRoutePasses">⚠️ Passes: Mushin, Oshodi</div>
+                </div>
+                <div class="safety-score grade-c" id="fastestScore">C</div>
+              </div>
+            </div>
+            
+            <!-- Safe Havens on Route -->
+            <div class="safe-havens-section" id="safeHavensSection" style="display:none;">
+              <div class="safe-havens-header">
+                <span class="safe-havens-title">🏥 Safe Havens on Route</span>
+                <span class="safe-havens-toggle" onclick="toggleSafeHavensOnMap()">
+                  <span id="havenToggleText">Show on Map</span>
+                  <span>→</span>
+                </span>
+              </div>
+              <div class="safe-havens-list">
+                <div class="safe-haven-chip active" onclick="showHavenOnMap('police1')">
+                  <span>🚔</span>
+                  <div class="safe-haven-chip-info">
+                    <div class="safe-haven-name">Area F Police</div>
+                    <div class="safe-haven-distance">1.2 km on route</div>
+                  </div>
+                </div>
+                <div class="safe-haven-chip" onclick="showHavenOnMap('hospital1')">
+                  <span>🏥</span>
+                  <div class="safe-haven-chip-info">
+                    <div class="safe-haven-name">LASUTH</div>
+                    <div class="safe-haven-distance">2.4 km on route</div>
+                  </div>
+                </div>
+                <div class="safe-haven-chip" onclick="showHavenOnMap('fuel1')">
+                  <span>⛽</span>
+                  <div class="safe-haven-chip-info">
+                    <div class="safe-haven-name">Total Station</div>
+                    <div class="safe-haven-distance">800m on route</div>
+                  </div>
+                </div>
+                <div class="safe-haven-chip" onclick="showHavenOnMap('church1')">
+                  <span>⛪</span>
+                  <div class="safe-haven-chip-info">
+                    <div class="safe-haven-name">RCCG Chapel</div>
+                    <div class="safe-haven-distance">1.8 km on route</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Start Safe Navigation Button -->
+            <button class="start-safe-route-btn" id="startSafeRouteBtn" onclick="startSafeNavigation()" style="display:none;">
+              <span>🚀</span>
+              <span>Start Safe Navigation</span>
+            </button>
           </div>
         </div>
         
@@ -4891,14 +6397,17 @@
          HUB SCREEN (Community + History)
          ============================================= -->
     <div class="screen" id="hubScreen">
-      <h1 class="page-title-sticky">Hub</h1>
-      
-      <div class="page-content-sticky">
+      <!-- Fixed Hub Header -->
+      <div class="hub-fixed-header">
+        <h1>Hub</h1>
         <div class="hub-tabs">
           <div class="hub-tab active" onclick="switchHubTab('community')">🚨 Alerts</div>
           <div class="hub-tab" onclick="switchHubTab('history')">📋 History</div>
         </div>
-        
+      </div>
+      
+      <!-- Scrollable Hub Content -->
+      <div class="hub-scroll-area">
         <!-- Community Content -->
         <div class="hub-content active" id="communityContent">
           <div class="region-filter" id="regionFilter">
@@ -5055,27 +6564,24 @@
           <div class="history-outcome resolved">✓ Safe</div>
         </div>
       </div>
-      </div>
+      </div><!-- end hub-scroll-area -->
     </div>
     
     <!-- =============================================
          CHECK-IN TIMER SCREEN
          ============================================= -->
     <div class="screen" id="checkinScreen">
-      <div class="status-bar">
-        <span id="time5">9:41</span>
-        <span>📶 📍 🔋</span>
-      </div>
-      
-      <div class="screen-header">
+      <!-- Fixed Check-in Header -->
+      <div class="checkin-fixed-header">
         <div class="back-btn" onclick="switchScreen('homeScreen')">
           <span>‹</span>
           <span>Home</span>
         </div>
+        <h1>Check-In Timer</h1>
       </div>
       
-      <h1 class="page-title" style="padding: 0 20px;">Check-In Timer</h1>
-      
+      <!-- Scrollable Check-in Content -->
+      <div class="checkin-scroll-area">
       <!-- Inactive State -->
       <div id="checkinSetup">
         <div class="checkin-intro">
@@ -5222,29 +6728,29 @@
           </button>
         </div>
       </div>
+      </div><!-- end checkin-scroll-area -->
     </div>
     <!-- =============================================
          EVIDENCE RECORDER SCREEN
          ============================================= -->
     <div class="screen" id="recordScreen">
-      <div class="status-bar">
-        <span id="time6">9:41</span>
-        <span>📶 📍 🔋</span>
+      <!-- Fixed Record Header -->
+      <div class="record-fixed-header">
+        <div class="record-header-row">
+          <div class="back-btn" onclick="switchScreen('homeScreen')">
+            <span>‹</span>
+            <span>Home</span>
+          </div>
+          <div class="stealth-toggle" onclick="toggleStealthMode()">
+            <span id="stealthIcon">👁️</span>
+            <span id="stealthLabel">Stealth</span>
+          </div>
+        </div>
+        <h1>Evidence Recorder</h1>
       </div>
       
-      <div class="screen-header">
-        <div class="back-btn" onclick="switchScreen('homeScreen')">
-          <span>‹</span>
-          <span>Home</span>
-        </div>
-        <div class="stealth-toggle" onclick="toggleStealthMode()">
-          <span id="stealthIcon">👁️</span>
-          <span id="stealthLabel">Stealth</span>
-        </div>
-      </div>
-      
-      <h1 class="page-title" style="padding: 0 20px;">Evidence Recorder</h1>
-      
+      <!-- Scrollable Record Content -->
+      <div class="record-scroll-area">
       <!-- Recorder Inactive State -->
       <div id="recorderSetup">
         <div class="recorder-intro">
@@ -5490,26 +6996,24 @@
           <button class="complete-done-btn" onclick="switchScreen('homeScreen')">Done</button>
         </div>
       </div>
+      </div><!-- end record-scroll-area -->
     </div>
     
     <!-- =============================================
          REPORT INCIDENT SCREEN
          ============================================= -->
     <div class="screen" id="reportScreen">
-      <div class="status-bar">
-        <span id="time7">9:41</span>
-        <span>📶 📍 🔋</span>
-      </div>
-      
-      <div class="screen-header">
+      <!-- Fixed Report Header -->
+      <div class="report-fixed-header">
         <div class="back-btn" onclick="switchScreen('homeScreen')">
           <span>‹</span>
           <span>Home</span>
         </div>
+        <h1>Report Security Threat</h1>
       </div>
       
-      <h1 class="page-title" style="padding: 0 20px;">Report Security Threat</h1>
-      
+      <!-- Scrollable Report Content -->
+      <div class="report-scroll-area">
       <!-- Emergency Hotlines Banner -->
       <div class="emergency-hotlines">
         <div class="hotline-header">
@@ -5533,7 +7037,7 @@
       </div>
       
       <!-- Report Form -->
-      <div id="reportForm" style="padding: 0 20px 40px;">
+      <div id="reportForm">
         <div class="section-header">
           <span class="section-title">What happened?</span>
         </div>
@@ -5730,14 +7234,19 @@
           <button class="submitted-done-btn" onclick="switchScreen('homeScreen')">Done</button>
         </div>
       </div>
+      </div><!-- end report-scroll-area -->
     </div>
     <!-- =============================================
          SETTINGS SCREEN
          ============================================= -->
     <div class="screen" id="settingsScreen">
-      <h1 class="page-title-sticky">Settings</h1>
+      <!-- Fixed Settings Header -->
+      <div class="settings-fixed-header">
+        <h1>Settings</h1>
+      </div>
       
-      <div class="page-content-sticky">
+      <!-- Scrollable Settings Content -->
+      <div class="settings-scroll-area">
         <div class="settings-group">
           <div class="settings-group-title">Account</div>
           <div class="settings-item" onclick="openSettingsSubScreen('personalInfo')">
@@ -5886,6 +7395,7 @@
         </div>
         <div class="ai-header-actions">
           <div class="ai-new-chat" onclick="resetAIChat()" title="New Chat">🔄</div>
+          <div class="ai-close" onclick="switchScreen('homeScreen')">✕</div>
         </div>
       </div>
       
@@ -5926,7 +7436,7 @@
   <!-- =============================================
        AI FLOATING BUTTON
        ============================================= -->
-  <button class="ai-float-btn" id="aiFloatBtn" onclick="toggleVoiceSOS()">
+  <button class="ai-float-btn" id="aiFloatBtn">
     🤖
     <div class="ai-status">✓</div>
   </button>
@@ -5942,10 +7452,6 @@
     <div class="nav-item" onclick="switchScreen('mapScreen')" id="navMap">
       <span class="nav-icon">🗺️</span>
       <span class="nav-label">Map</span>
-    </div>
-    <div class="nav-item" onclick="switchScreen('aiScreen')" id="navAI">
-      <span class="nav-icon">🤖</span>
-      <span class="nav-label">AI</span>
     </div>
     <div class="nav-item" onclick="switchScreen('hubScreen')" id="navHub">
       <span class="nav-icon">📊</span>
@@ -6172,24 +7678,22 @@
       
       if (screenId === 'homeScreen') document.getElementById('navHome').classList.add('active');
       if (screenId === 'mapScreen') document.getElementById('navMap').classList.add('active');
-      if (screenId === 'aiScreen') document.getElementById('navAI').classList.add('active');
       if (screenId === 'hubScreen') document.getElementById('navHub').classList.add('active');
       if (screenId === 'settingsScreen') document.getElementById('navSettings').classList.add('active');
       
       // For sub-screens, keep parent nav active
-      if (screenId === 'checkinScreen' || screenId === 'recordScreen' || screenId === 'reportScreen') {
+      if (screenId === 'checkinScreen' || screenId === 'recordScreen' || screenId === 'reportScreen' || screenId === 'aiScreen') {
         document.getElementById('navHome').classList.add('active');
       }
       
-      // Hide/show AI float button based on screen
+      // Hide/show AI float button and bottom nav based on screen
       var aiBtn = document.getElementById('aiFloatBtn');
       var bottomNav = document.querySelector('.bottom-nav');
       
       if (screenId === 'aiScreen') {
-        // Hide AI button when AI screen is open (not needed since we have AI tab)
+        // Hide AI button and bottom nav when AI screen is open
         if (aiBtn) aiBtn.style.display = 'none';
-        // Keep bottom nav visible so user can switch tabs
-        if (bottomNav) bottomNav.style.display = 'flex';
+        if (bottomNav) bottomNav.style.display = 'none';
         
         // Focus the AI input after a short delay (for animation)
         setTimeout(function() {
@@ -6197,7 +7701,7 @@
           if (aiInput) aiInput.focus();
         }, 300);
       } else {
-        // Show AI button on other screens
+        // Show them on other screens
         if (aiBtn) aiBtn.style.display = 'flex';
         if (bottomNav) bottomNav.style.display = 'flex';
       }
@@ -6555,7 +8059,8 @@
       container.addEventListener('pointerdown', function(e) {
         if (e.target.closest('.map-controls') || e.target.closest('.trip-panel') || 
             e.target.closest('.start-trip-panel') || e.target.closest('.marker-popup') ||
-            e.target.closest('.map-legend') || e.target.closest('.map-search')) return;
+            e.target.closest('.map-legend') || e.target.closest('.map-search') ||
+            e.target.closest('.safe-route-panel') || e.target.closest('.map-mode-toggle')) return;
         
         isDragging = true;
         dragStartX = e.clientX;
@@ -6653,6 +8158,421 @@
       }
       
       showToast('📍 ' + loc.name);
+    }
+    
+    // =============================================
+    // SAFE ROUTE NAVIGATION
+    // =============================================
+    var safeRouteMode = false;
+    var safeHavensVisible = false;
+    var dangerZonesVisible = false;
+    var selectedRoute = 'safest';
+    
+    // Safe Havens Data
+    var safeHavens = {
+      police1: { name: 'Area F Police Station', type: 'police', x: 280, y: 420, address: 'Victoria Island', phone: '112' },
+      police2: { name: 'Ikeja Police Division', type: 'police', x: 170, y: 150, address: 'Ikeja', phone: '112' },
+      hospital1: { name: 'LASUTH', type: 'hospital', x: 320, y: 340, address: 'Ikeja', phone: '01-774-4775' },
+      hospital2: { name: 'Lagoon Hospital', type: 'hospital', x: 260, y: 500, address: 'Victoria Island', phone: '01-270-4745' },
+      fuel1: { name: 'Total Station', type: 'fuel', x: 200, y: 250, address: '24hr, Well-lit', phone: null },
+      fuel2: { name: 'Mobil Station', type: 'fuel', x: 310, y: 480, address: '24hr, Security', phone: null },
+      church1: { name: 'RCCG City of David', type: 'church', x: 240, y: 320, address: 'Victoria Island', phone: null }
+    };
+    
+    // Danger Zones Data
+    var dangerZones = {
+      mushin: { name: 'Mushin', risk: 'high', reason: 'High robbery rate, especially at night', x: 200, y: 380 },
+      oshodi: { name: 'Oshodi Under Bridge', risk: 'high', reason: 'One-chance incidents, pickpockets', x: 110, y: 420 },
+      ikeja: { name: 'Computer Village Area', risk: 'medium', reason: 'Robbery hotspot, especially evenings', x: 130, y: 130 },
+      isolated: { name: 'Isolated Road', risk: 'medium', reason: 'Low lighting, few witnesses', x: 160, y: 280 }
+    };
+    
+    // Switch between Trip Monitor and Safe Route modes
+    function switchMapMode(mode) {
+      var modeTrip = document.getElementById('modeTrip');
+      var modeSafeRoute = document.getElementById('modeSafeRoute');
+      var startTripPanel = document.getElementById('startTripPanel');
+      var safeRoutePanel = document.getElementById('safeRoutePanel');
+      var legend = document.getElementById('mapLegend');
+      var legendHavens = document.getElementById('legendHavens');
+      var legendDanger = document.getElementById('legendDanger');
+      
+      if (mode === 'trip') {
+        safeRouteMode = false;
+        modeTrip.classList.add('active');
+        modeSafeRoute.classList.remove('active');
+        if (startTripPanel) startTripPanel.style.display = '';
+        if (safeRoutePanel) safeRoutePanel.classList.remove('active');
+        hideDangerZones();
+        hideRoutePaths();
+        if (legend) legend.classList.remove('safe-route-mode');
+        if (legendHavens) legendHavens.style.display = 'none';
+        if (legendDanger) legendDanger.style.display = 'none';
+      } else {
+        safeRouteMode = true;
+        modeTrip.classList.remove('active');
+        modeSafeRoute.classList.add('active');
+        if (startTripPanel) startTripPanel.style.display = 'none';
+        if (safeRoutePanel) safeRoutePanel.classList.add('active');
+        showDangerZones();
+        if (legend) legend.classList.add('safe-route-mode');
+        if (legendHavens) legendHavens.style.display = 'flex';
+        if (legendDanger) legendDanger.style.display = 'flex';
+        updateTimeIndicator();
+      }
+    }
+    
+    // Toggle Safe Havens visibility on map
+    function toggleSafeHavens() {
+      var btn = document.getElementById('safeHavensBtn');
+      var group = document.getElementById('safeHavensGroup');
+      
+      safeHavensVisible = !safeHavensVisible;
+      
+      if (btn) btn.classList.toggle('active', safeHavensVisible);
+      if (group) group.style.display = safeHavensVisible ? 'block' : 'none';
+      
+      showToast(safeHavensVisible ? '🏥 Safe havens shown' : '🏥 Safe havens hidden');
+    }
+    
+    // Show danger zones on map
+    function showDangerZones() {
+      var group = document.getElementById('dangerZonesGroup');
+      if (group) {
+        group.style.display = 'block';
+        dangerZonesVisible = true;
+      }
+    }
+    
+    // Hide danger zones on map
+    function hideDangerZones() {
+      var group = document.getElementById('dangerZonesGroup');
+      if (group) {
+        group.style.display = 'none';
+        dangerZonesVisible = false;
+      }
+    }
+    
+    // Update time indicator (day/night affects safety)
+    function updateTimeIndicator() {
+      var indicator = document.getElementById('timeIndicator');
+      var text = document.getElementById('timeIndicatorText');
+      var hour = new Date().getHours();
+      
+      if (hour >= 6 && hour < 18) {
+        // Daytime (6am - 6pm)
+        indicator.className = 'time-indicator day';
+        text.textContent = 'Daytime';
+        indicator.querySelector('span:first-child').textContent = '☀️';
+      } else if (hour >= 18 && hour < 21) {
+        // Evening (6pm - 9pm)
+        indicator.className = 'time-indicator';
+        indicator.style.background = 'rgba(255,159,10,0.15)';
+        indicator.style.color = '#FF9F0A';
+        text.textContent = 'Evening';
+        indicator.querySelector('span:first-child').textContent = '🌅';
+      } else {
+        // Night (9pm - 6am)
+        indicator.className = 'time-indicator night';
+        text.textContent = 'Night - Higher Risk';
+        indicator.querySelector('span:first-child').textContent = '🌙';
+      }
+    }
+    
+    // Handle destination input in safe route mode
+    function onSafeRouteDestInput() {
+      var destInput = document.getElementById('safeRouteDest');
+      var dest = destInput.value.trim().toLowerCase();
+      
+      if (dest.length > 2) {
+        // Show route options after destination entered
+        calculateSafeRoutes(dest);
+      }
+    }
+    
+    // Find Safe Routes - triggered by button click
+    function findSafeRoutes() {
+      var destInput = document.getElementById('safeRouteDest');
+      var dest = destInput.value.trim();
+      
+      if (!dest || dest.length < 2) {
+        showToast('⚠️ Enter a destination');
+        return;
+      }
+      
+      // Hide the find button once routes are found
+      var findBtn = document.getElementById('findRoutesBtn');
+      if (findBtn) findBtn.classList.add('hidden');
+      
+      calculateSafeRoutes(dest);
+    }
+    
+    // Calculate safe routes
+    function calculateSafeRoutes(destination) {
+      var routeOptions = document.getElementById('routeOptions');
+      var dangerWarning = document.getElementById('dangerZoneWarning');
+      var safeHavensSection = document.getElementById('safeHavensSection');
+      var startBtn = document.getElementById('startSafeRouteBtn');
+      
+      // Show analyzing state
+      showToast('🔍 Analyzing routes...');
+      
+      // Simulate route calculation
+      setTimeout(function() {
+        // Determine which danger zones the fast route passes through
+        var passesThroughDanger = false;
+        var dangerAreas = [];
+        
+        // Check if destination requires passing through dangerous areas
+        var destLower = destination.toLowerCase();
+        if (destLower.includes('vi') || destLower.includes('victoria') || 
+            destLower.includes('lekki') || destLower.includes('ikoyi')) {
+          // Routes from Surulere to VI/Lekki might pass through Mushin/Oshodi
+          passesThroughDanger = true;
+          dangerAreas = ['Mushin', 'Oshodi Under Bridge'];
+        }
+        
+        // Update danger warning
+        if (passesThroughDanger && dangerWarning) {
+          dangerWarning.style.display = 'flex';
+          var desc = document.getElementById('dangerZoneDesc');
+          if (desc) {
+            desc.textContent = 'Your fastest route passes through ' + dangerAreas.join(' and ') + 
+              ' which have high incident reports. We recommend the safer alternative.';
+          }
+        } else if (dangerWarning) {
+          dangerWarning.style.display = 'none';
+        }
+        
+        // Show route paths on map
+        showRoutePaths(passesThroughDanger);
+        
+        // Show route options
+        if (routeOptions) routeOptions.style.display = 'flex';
+        if (safeHavensSection) safeHavensSection.style.display = 'block';
+        if (startBtn) startBtn.style.display = 'flex';
+        
+        showToast('✓ 3 routes found');
+      }, 800);
+    }
+    
+    // Show route paths on map
+    function showRoutePaths(showBoth) {
+      var safePath = document.getElementById('safeRoutePath');
+      var fastPath = document.getElementById('fastRoutePath');
+      
+      if (safePath) safePath.style.display = 'block';
+      if (fastPath && showBoth) fastPath.style.display = 'block';
+    }
+    
+    // Hide route paths
+    function hideRoutePaths() {
+      var safePath = document.getElementById('safeRoutePath');
+      var fastPath = document.getElementById('fastRoutePath');
+      
+      if (safePath) safePath.style.display = 'none';
+      if (fastPath) fastPath.style.display = 'none';
+    }
+    
+    // Select a route option
+    function selectRoute(routeType) {
+      selectedRoute = routeType;
+      
+      // Update UI selection
+      document.querySelectorAll('.route-option').forEach(function(opt) {
+        opt.classList.remove('selected');
+      });
+      
+      var selectedOpt = document.querySelector('.route-option.' + routeType);
+      if (selectedOpt) selectedOpt.classList.add('selected');
+      
+      // Update map to highlight selected route
+      var safePath = document.getElementById('safeRoutePath');
+      var fastPath = document.getElementById('fastRoutePath');
+      
+      if (routeType === 'safest') {
+        if (safePath) { safePath.style.opacity = '1'; safePath.style.strokeWidth = '6'; }
+        if (fastPath) { fastPath.style.opacity = '0.4'; fastPath.style.strokeWidth = '3'; }
+        showToast('🛡️ Safest route selected');
+      } else if (routeType === 'fastest') {
+        if (safePath) { safePath.style.opacity = '0.4'; safePath.style.strokeWidth = '3'; }
+        if (fastPath) { fastPath.style.opacity = '1'; fastPath.style.strokeWidth = '5'; }
+        showToast('⚡ Fastest route selected');
+      } else {
+        if (safePath) { safePath.style.opacity = '0.7'; safePath.style.strokeWidth = '5'; }
+        if (fastPath) { fastPath.style.opacity = '0.5'; fastPath.style.strokeWidth = '4'; }
+        showToast('⚖️ Balanced route selected');
+      }
+    }
+    
+    // Swap origin and destination
+    function swapRouteInputs() {
+      var origin = document.getElementById('safeRouteOrigin');
+      var dest = document.getElementById('safeRouteDest');
+      
+      if (origin && dest) {
+        var temp = origin.value;
+        origin.value = dest.value;
+        dest.value = temp;
+      }
+      
+      showToast('↕️ Swapped');
+    }
+    
+    // Toggle safe havens on map from panel
+    function toggleSafeHavensOnMap() {
+      var text = document.getElementById('havenToggleText');
+      
+      if (!safeHavensVisible) {
+        toggleSafeHavens();
+        if (text) text.textContent = 'Hide on Map';
+      } else {
+        toggleSafeHavens();
+        if (text) text.textContent = 'Show on Map';
+      }
+    }
+    
+    // Show specific haven on map
+    function showHavenOnMap(havenId) {
+      var haven = safeHavens[havenId];
+      if (!haven) return;
+      
+      // Ensure havens are visible
+      if (!safeHavensVisible) {
+        toggleSafeHavens();
+      }
+      
+      // Center map on haven
+      var svg = document.getElementById('mapSvg');
+      if (svg) {
+        svg.classList.add('animating');
+        mapZoom = 1.5;
+        mapPanX = -haven.x * 0.5 + 100;
+        mapPanY = -haven.y * 0.5 + 150;
+        updateMapTransform();
+        setTimeout(function() { svg.classList.remove('animating'); }, 400);
+      }
+      
+      showToast(getHavenIcon(haven.type) + ' ' + haven.name);
+    }
+    
+    // Get icon for haven type
+    function getHavenIcon(type) {
+      var icons = { police: '🚔', hospital: '🏥', fuel: '⛽', church: '⛪' };
+      return icons[type] || '📍';
+    }
+    
+    // Show haven info popup
+    function showHavenInfo(havenId) {
+      var haven = safeHavens[havenId];
+      if (!haven) return;
+      
+      var popup = document.getElementById('markerPopup');
+      var badge = document.getElementById('popupBadge');
+      var title = document.getElementById('popupTitle');
+      var location = document.getElementById('popupLocation');
+      var time = document.getElementById('popupTime');
+      var desc = document.getElementById('popupDesc');
+      
+      badge.textContent = '✓ Safe Haven';
+      badge.className = 'popup-badge safe';
+      title.textContent = haven.name;
+      location.textContent = '📍 ' + haven.address;
+      time.textContent = haven.phone ? '📞 ' + haven.phone : '24 hours';
+      desc.textContent = 'This is a verified safe location where you can seek help in an emergency.';
+      
+      // Hide AI analysis for havens
+      var aiSection = document.getElementById('markerAiAnalysis');
+      if (aiSection) aiSection.style.display = 'none';
+      
+      popup.classList.add('show');
+      document.getElementById('mapLegend').style.display = 'none';
+    }
+    
+    // Start safe navigation
+    function startSafeNavigation() {
+      var dest = document.getElementById('safeRouteDest').value;
+      
+      if (!dest) {
+        showToast('⚠️ Enter a destination');
+        return;
+      }
+      
+      // Switch to trip mode with safe route active
+      showToast('🚀 Starting safe navigation to ' + dest);
+      
+      // Start the trip with the selected safe route
+      var tripDest = document.getElementById('tripDest');
+      if (tripDest) tripDest.textContent = dest;
+      
+      // Update trip panel title
+      var tripTitle = document.getElementById('tripPanelTitle');
+      if (tripTitle) tripTitle.textContent = 'To ' + dest + ' (Safe Route)';
+      
+      // Show trip panel
+      var tripPanel = document.getElementById('tripPanel');
+      var safeRoutePanel = document.getElementById('safeRoutePanel');
+      
+      if (tripPanel) tripPanel.classList.remove('hidden');
+      if (safeRoutePanel) safeRoutePanel.classList.remove('active');
+      
+      // Update safety badge
+      var badge = document.getElementById('tripSafetyBadge');
+      if (badge) {
+        if (selectedRoute === 'safest') {
+          badge.textContent = '🛡️ A+ Safe';
+          badge.className = 'ai-safety-badge safe';
+        } else if (selectedRoute === 'fastest') {
+          badge.textContent = '⚠️ C Risk';
+          badge.className = 'ai-safety-badge warning';
+        } else {
+          badge.textContent = '✓ B Safe';
+          badge.className = 'ai-safety-badge safe';
+        }
+      }
+      
+      // Keep safe havens visible during trip
+      if (!safeHavensVisible) {
+        toggleSafeHavens();
+      }
+      
+      // Start trip simulation
+      tripActive = true;
+      simulateTrip();
+      
+      try { navigator.vibrate([50, 30, 50]); } catch(e) {}
+    }
+    
+    // Open Safe Route from Home screen quick action
+    function openSafeRoute() {
+      switchScreen('mapScreen');
+      // Wait for screen to switch, then activate Safe Route mode
+      setTimeout(function() {
+        switchMapMode('saferoute');
+      }, 100);
+    }
+    
+    // Close Safe Route panel and return to Trip mode
+    function closeSafeRoutePanel() {
+      switchMapMode('trip');
+      hideRoutePaths();
+      
+      // Reset the form
+      var destInput = document.getElementById('safeRouteDest');
+      var routeOptions = document.getElementById('routeOptions');
+      var dangerWarning = document.getElementById('dangerZoneWarning');
+      var safeHavensSection = document.getElementById('safeHavensSection');
+      var startBtn = document.getElementById('startSafeRouteBtn');
+      var findBtn = document.getElementById('findRoutesBtn');
+      
+      if (destInput) destInput.value = '';
+      if (routeOptions) routeOptions.style.display = 'none';
+      if (dangerWarning) dangerWarning.style.display = 'none';
+      if (safeHavensSection) safeHavensSection.style.display = 'none';
+      if (startBtn) startBtn.style.display = 'none';
+      if (findBtn) findBtn.classList.remove('hidden');
+      
+      showToast('Safe Route closed');
     }
     
     // Current marker for AI queries
@@ -7746,11 +9666,614 @@ Respond ONLY with valid JSON:
     // =============================================
     // SETTINGS
     // =============================================
+    
     function openSettingsSubScreen(type) {
       if (type === 'language') {
         showLanguageSelector();
+        return;
+      }
+      
+      var subScreen = document.getElementById('settingsSubScreen');
+      var title = document.getElementById('subScreenTitle');
+      var content = document.getElementById('subScreenContent');
+      
+      // Define content for each settings type
+      var settingsContent = {
+        personalInfo: {
+          title: 'Personal Info',
+          html: `
+            <div class="settings-form-group">
+              <div class="settings-form-label">Full Name</div>
+              <input type="text" class="settings-input" value="Kolade Ogunwale" placeholder="Enter your name">
+            </div>
+            <div class="settings-form-group">
+              <div class="settings-form-label">Phone Number</div>
+              <input type="tel" class="settings-input" value="+234 802 123 4567" placeholder="Phone number">
+            </div>
+            <div class="settings-form-group">
+              <div class="settings-form-label">Email Address</div>
+              <input type="email" class="settings-input" value="kolade@example.com" placeholder="Email">
+            </div>
+            <div class="settings-form-group">
+              <div class="settings-form-label">Blood Type (for emergencies)</div>
+              <select class="settings-input">
+                <option value="">Select blood type</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="O+" selected>O+</option>
+                <option value="O-">O-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+              </select>
+            </div>
+            <div class="settings-form-group">
+              <div class="settings-form-label">Medical Conditions (optional)</div>
+              <textarea class="settings-input" rows="3" placeholder="Any allergies, conditions responders should know?"></textarea>
+            </div>
+            <button class="settings-save-btn" onclick="saveSettings('personalInfo')">Save Changes</button>
+          `
+        },
+        emergencyContacts: {
+          title: 'Emergency Contacts',
+          html: `
+            <p style="color: #8E8E93; font-size: 13px; margin-bottom: 16px;">These contacts will be notified during emergencies with your location.</p>
+            
+            <div class="contact-edit-card">
+              <div class="contact-edit-avatar" style="background: linear-gradient(145deg, #3498db, #2980b9)">MA</div>
+              <div class="contact-edit-info">
+                <input type="text" class="contact-name-input" value="Mama">
+                <input type="tel" class="contact-phone-input" value="+234 802 XXX XXXX">
+                <select class="contact-type-select">
+                  <option value="family" selected>Family</option>
+                  <option value="friend">Friend</option>
+                  <option value="neighbor">Neighbor</option>
+                  <option value="security">Security</option>
+                </select>
+              </div>
+              <span class="contact-delete" onclick="deleteContact(1)">🗑️</span>
+            </div>
+            
+            <div class="contact-edit-card">
+              <div class="contact-edit-avatar" style="background: linear-gradient(145deg, #FF9F0A, #e08900)">AD</div>
+              <div class="contact-edit-info">
+                <input type="text" class="contact-name-input" value="Alhaji Danfodio">
+                <input type="tel" class="contact-phone-input" value="+234 803 XXX XXXX">
+                <select class="contact-type-select">
+                  <option value="family">Family</option>
+                  <option value="friend">Friend</option>
+                  <option value="neighbor" selected>Neighbor</option>
+                  <option value="security">Security</option>
+                </select>
+              </div>
+              <span class="contact-delete" onclick="deleteContact(2)">🗑️</span>
+            </div>
+            
+            <div class="contact-edit-card">
+              <div class="contact-edit-avatar" style="background: linear-gradient(145deg, #32D74B, #28a745)">🛡️</div>
+              <div class="contact-edit-info">
+                <input type="text" class="contact-name-input" value="Area Security">
+                <input type="tel" class="contact-phone-input" value="+234 901 XXX XXXX">
+                <select class="contact-type-select">
+                  <option value="family">Family</option>
+                  <option value="friend">Friend</option>
+                  <option value="neighbor">Neighbor</option>
+                  <option value="security" selected>Security</option>
+                </select>
+              </div>
+              <span class="contact-delete" onclick="deleteContact(3)">🗑️</span>
+            </div>
+            
+            <button class="settings-add-btn" onclick="addNewContact()">
+              <span>➕</span> Add Contact
+            </button>
+            
+            <button class="settings-save-btn" onclick="saveSettings('contacts')">Save Contacts</button>
+          `
+        },
+        premium: {
+          title: 'SafeAlert Premium',
+          html: `
+            <div class="premium-hero">
+              <div class="premium-icon">⭐</div>
+              <h2 style="font-size: 24px; margin-bottom: 8px;">Unlock Full Protection</h2>
+              <p style="color: #8E8E93;">Get advanced features for complete safety</p>
+            </div>
+            
+            <div class="premium-features">
+              <div class="premium-feature">
+                <span class="premium-feature-icon">🎙️</span>
+                <div>
+                  <strong>Unlimited Voice Recording</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Record evidence without storage limits</p>
+                </div>
+              </div>
+              <div class="premium-feature">
+                <span class="premium-feature-icon">📍</span>
+                <div>
+                  <strong>Real-time Location Sharing</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Live GPS tracking for family</p>
+                </div>
+              </div>
+              <div class="premium-feature">
+                <span class="premium-feature-icon">🤖</span>
+                <div>
+                  <strong>AI Priority Support</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Faster AI responses in emergencies</p>
+                </div>
+              </div>
+              <div class="premium-feature">
+                <span class="premium-feature-icon">🚨</span>
+                <div>
+                  <strong>Direct Security Response</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Connect to nearby security services</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="premium-pricing">
+              <div class="premium-plan">
+                <div class="plan-name">Monthly</div>
+                <div class="plan-price">₦1,500<span>/month</span></div>
+              </div>
+              <div class="premium-plan popular">
+                <div class="plan-badge">Best Value</div>
+                <div class="plan-name">Yearly</div>
+                <div class="plan-price">₦12,000<span>/year</span></div>
+                <div class="plan-savings">Save ₦6,000</div>
+              </div>
+            </div>
+            
+            <button class="settings-save-btn premium-btn" onclick="subscribePremium()">
+              Start Free Trial (7 Days)
+            </button>
+            <p style="text-align: center; color: #636366; font-size: 11px; margin-top: 12px;">Cancel anytime. No commitment required.</p>
+          `
+        },
+        notifications: {
+          title: 'Notifications',
+          html: `
+            <div class="settings-toggle-group">
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Emergency Alerts</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Alerts in your area</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Check-in Reminders</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Timer expiry warnings</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Trip Notifications</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Updates during live trips</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Community Reports</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">New incidents nearby</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Sound & Vibration</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Alert sounds</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Marketing Messages</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Tips and updates</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <button class="settings-save-btn" onclick="saveSettings('notifications')">Save Preferences</button>
+          `
+        },
+        locationSettings: {
+          title: 'Location Settings',
+          html: `
+            <div class="location-status-card">
+              <span class="location-status-icon">📍</span>
+              <div>
+                <strong>Location Access: Active</strong>
+                <p style="color: #32D74B; font-size: 12px;">High accuracy GPS enabled</p>
+              </div>
+            </div>
+            
+            <div class="settings-toggle-group">
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Background Location</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Track during trips & emergencies</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Share with Contacts</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">During active emergencies</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Location History</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Save recent locations</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="settings-form-group" style="margin-top: 20px;">
+              <div class="settings-form-label">Home Location</div>
+              <input type="text" class="settings-input" value="Ikeja, Lagos" placeholder="Set your home address">
+            </div>
+            
+            <div class="settings-form-group">
+              <div class="settings-form-label">Work Location</div>
+              <input type="text" class="settings-input" value="Victoria Island, Lagos" placeholder="Set your work address">
+            </div>
+            
+            <button class="settings-save-btn" onclick="saveSettings('location')">Save Settings</button>
+          `
+        },
+        sosSettings: {
+          title: 'SOS Settings',
+          html: `
+            <div class="sos-preview">
+              <div class="sos-preview-btn">SOS</div>
+              <p style="color: #8E8E93; text-align: center; font-size: 13px;">Hold for 3 seconds to activate</p>
+            </div>
+            
+            <div class="settings-form-group">
+              <div class="settings-form-label">Hold Duration</div>
+              <select class="settings-input">
+                <option value="2">2 seconds</option>
+                <option value="3" selected>3 seconds (Recommended)</option>
+                <option value="5">5 seconds</option>
+              </select>
+            </div>
+            
+            <div class="settings-toggle-group">
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Auto-Record Audio</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Start recording on SOS</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Send SMS Alert</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Text contacts with location</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Auto-Call First Contact</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Call after SMS sent</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Loud Siren Sound</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Play alarm sound</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <button class="settings-save-btn" onclick="saveSettings('sos')">Save SOS Settings</button>
+          `
+        },
+        safeWord: {
+          title: 'Safe Word',
+          html: `
+            <div class="safeword-intro">
+              <span style="font-size: 48px;">🗣️</span>
+              <p style="color: #8E8E93; margin-top: 12px;">Say your safe word aloud to trigger emergency SOS when you can't reach your phone.</p>
+            </div>
+            
+            <div class="settings-form-group">
+              <div class="settings-form-label">Your Safe Word</div>
+              <input type="text" class="settings-input" value="Red Alert" placeholder="Choose a word or phrase">
+              <p style="color: #636366; font-size: 11px; margin-top: 8px;">Choose something you wouldn't say normally but easy to remember</p>
+            </div>
+            
+            <div class="settings-toggle-group">
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Enable Safe Word</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Listen for voice trigger</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div class="settings-toggle-item">
+                <div>
+                  <strong>Background Listening</strong>
+                  <p style="color: #8E8E93; font-size: 12px;">Listen even when app closed</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <button class="settings-test-btn" onclick="testSafeWord()">🎤 Test Safe Word</button>
+            
+            <button class="settings-save-btn" onclick="saveSettings('safeword')">Save Safe Word</button>
+          `
+        },
+        howItWorks: {
+          title: 'How SafeAlert Works',
+          html: `
+            <div class="how-it-works-section">
+              <div class="how-step">
+                <div class="how-step-number">1</div>
+                <div>
+                  <strong>Emergency SOS</strong>
+                  <p style="color: #8E8E93; font-size: 13px;">Hold the SOS button for 3 seconds. Your location and emergency alert will be sent to your contacts.</p>
+                </div>
+              </div>
+              
+              <div class="how-step">
+                <div class="how-step-number">2</div>
+                <div>
+                  <strong>Check-In Timer</strong>
+                  <p style="color: #8E8E93; font-size: 13px;">Set a timer when you're in potentially unsafe situations. If you don't check in, your contacts are alerted.</p>
+                </div>
+              </div>
+              
+              <div class="how-step">
+                <div class="how-step-number">3</div>
+                <div>
+                  <strong>Evidence Recorder</strong>
+                  <p style="color: #8E8E93; font-size: 13px;">Record audio/video that's automatically saved to the cloud. Can't be deleted even if phone is taken.</p>
+                </div>
+              </div>
+              
+              <div class="how-step">
+                <div class="how-step-number">4</div>
+                <div>
+                  <strong>Trip Monitoring</strong>
+                  <p style="color: #8E8E93; font-size: 13px;">Share your journey with trusted contacts who can track your live location during trips.</p>
+                </div>
+              </div>
+              
+              <div class="how-step">
+                <div class="how-step-number">5</div>
+                <div>
+                  <strong>Report Incidents</strong>
+                  <p style="color: #8E8E93; font-size: 13px;">Report security threats in your area to warn others and help build community safety data.</p>
+                </div>
+              </div>
+              
+              <div class="how-step">
+                <div class="how-step-number">6</div>
+                <div>
+                  <strong>AI Safety Assistant</strong>
+                  <p style="color: #8E8E93; font-size: 13px;">Get real-time advice from AI in dangerous situations. Tap the robot button to chat.</p>
+                </div>
+              </div>
+            </div>
+          `
+        },
+        privacy: {
+          title: 'Privacy Policy',
+          html: `
+            <div class="privacy-content">
+              <div class="privacy-badge">🇳🇬 NDPR Compliant</div>
+              
+              <h3 style="margin-top: 20px; margin-bottom: 10px;">Your Data, Your Control</h3>
+              <p style="color: #8E8E93; font-size: 14px; line-height: 1.6;">
+                SafeAlert NG is committed to protecting your privacy in accordance with the Nigeria Data Protection Regulation (NDPR).
+              </p>
+              
+              <h3 style="margin-top: 20px; margin-bottom: 10px;">What We Collect</h3>
+              <ul style="color: #8E8E93; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+                <li>Location data (only during active features)</li>
+                <li>Emergency contacts you provide</li>
+                <li>Incident reports (can be anonymous)</li>
+                <li>Audio/video recordings you create</li>
+              </ul>
+              
+              <h3 style="margin-top: 20px; margin-bottom: 10px;">How We Use It</h3>
+              <ul style="color: #8E8E93; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+                <li>Send emergency alerts to your contacts</li>
+                <li>Show relevant safety information</li>
+                <li>Improve community safety data</li>
+                <li>Never sell to third parties</li>
+              </ul>
+              
+              <h3 style="margin-top: 20px; margin-bottom: 10px;">Your Rights</h3>
+              <ul style="color: #8E8E93; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+                <li>Access your data anytime</li>
+                <li>Request data deletion</li>
+                <li>Opt out of non-essential features</li>
+                <li>Export your data</li>
+              </ul>
+              
+              <button class="settings-secondary-btn" onclick="requestDataExport()">📥 Export My Data</button>
+              <button class="settings-danger-btn" onclick="requestDataDeletion()">🗑️ Delete My Data</button>
+            </div>
+          `
+        },
+        terms: {
+          title: 'Terms of Service',
+          html: `
+            <div class="terms-content">
+              <p style="color: #8E8E93; font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
+                By using SafeAlert NG, you agree to the following terms:
+              </p>
+              
+              <h3 style="margin-bottom: 10px;">1. Service Purpose</h3>
+              <p style="color: #8E8E93; font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
+                SafeAlert is a personal safety application designed to help users in emergency situations. It is not a substitute for official emergency services.
+              </p>
+              
+              <h3 style="margin-bottom: 10px;">2. User Responsibilities</h3>
+              <p style="color: #8E8E93; font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
+                • Provide accurate emergency contact information<br>
+                • Do not submit false emergency reports<br>
+                • Keep your app updated for best performance
+              </p>
+              
+              <h3 style="margin-bottom: 10px;">3. Limitations</h3>
+              <p style="color: #8E8E93; font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
+                SafeAlert depends on device connectivity and GPS accuracy. We cannot guarantee service in areas without network coverage.
+              </p>
+              
+              <h3 style="margin-bottom: 10px;">4. False Reports</h3>
+              <p style="color: #8E8E93; font-size: 14px; line-height: 1.6; margin-bottom: 16px;">
+                Submitting false security reports may result in account suspension and potential legal consequences under Nigerian law.
+              </p>
+              
+              <p style="color: #636366; font-size: 12px; margin-top: 20px;">
+                Last updated: December 2024
+              </p>
+            </div>
+          `
+        },
+        support: {
+          title: 'Contact Support',
+          html: `
+            <div class="support-content">
+              <div class="support-hero">
+                <span style="font-size: 48px;">💬</span>
+                <h3 style="margin-top: 12px;">Need Help?</h3>
+                <p style="color: #8E8E93;">We're here 24/7</p>
+              </div>
+              
+              <div class="support-options">
+                <div class="support-option" onclick="openWhatsAppSupport()">
+                  <span class="support-icon" style="background: #25D366;">💬</span>
+                  <div>
+                    <strong>WhatsApp</strong>
+                    <p style="color: #8E8E93; font-size: 12px;">Fastest response</p>
+                  </div>
+                  <span class="settings-arrow">›</span>
+                </div>
+                
+                <div class="support-option" onclick="openEmailSupport()">
+                  <span class="support-icon" style="background: #64D2FF;">📧</span>
+                  <div>
+                    <strong>Email Us</strong>
+                    <p style="color: #8E8E93; font-size: 12px;">support@safealert.ng</p>
+                  </div>
+                  <span class="settings-arrow">›</span>
+                </div>
+                
+                <div class="support-option" onclick="callSupport()">
+                  <span class="support-icon" style="background: #32D74B;">📞</span>
+                  <div>
+                    <strong>Call Us</strong>
+                    <p style="color: #8E8E93; font-size: 12px;">+234 800 SAFE (7233)</p>
+                  </div>
+                  <span class="settings-arrow">›</span>
+                </div>
+              </div>
+              
+              <div class="faq-section">
+                <h4 style="margin-bottom: 12px; color: #8E8E93;">Frequently Asked Questions</h4>
+                <div class="faq-item" onclick="toggleFaq(this)">
+                  <span>Does SafeAlert work offline?</span>
+                  <span class="faq-arrow">›</span>
+                </div>
+                <div class="faq-answer">Basic features work offline, but location sharing requires internet.</div>
+                
+                <div class="faq-item" onclick="toggleFaq(this)">
+                  <span>Is my data secure?</span>
+                  <span class="faq-arrow">›</span>
+                </div>
+                <div class="faq-answer">Yes! All data is encrypted and stored securely per NDPR guidelines.</div>
+                
+                <div class="faq-item" onclick="toggleFaq(this)">
+                  <span>Can I use SafeAlert outside Nigeria?</span>
+                  <span class="faq-arrow">›</span>
+                </div>
+                <div class="faq-answer">Yes, the app works globally but is optimized for Nigeria.</div>
+              </div>
+            </div>
+          `
+        }
+      };
+      
+      var config = settingsContent[type];
+      if (config) {
+        title.textContent = config.title;
+        content.innerHTML = config.html;
+        subScreen.classList.add('show');
       } else {
-        showToast('Opening ' + type + ' settings');
+        showToast('Coming soon');
       }
     }
     
@@ -7871,7 +10394,65 @@ Respond ONLY with valid JSON:
     }
     
     function closeSettingsSubScreen() {
-      showToast('Closed settings');
+      document.getElementById('settingsSubScreen').classList.remove('show');
+    }
+    
+    // Settings helper functions
+    function saveSettings(type) {
+      showToast('✅ ' + type.charAt(0).toUpperCase() + type.slice(1) + ' settings saved');
+      closeSettingsSubScreen();
+    }
+    
+    function deleteContact(id) {
+      if (confirm('Remove this contact?')) {
+        showToast('Contact removed');
+      }
+    }
+    
+    function addNewContact() {
+      showToast('Add contact feature coming soon');
+    }
+    
+    function subscribePremium() {
+      showToast('✨ Starting free trial...');
+    }
+    
+    function testSafeWord() {
+      showToast('🎤 Say your safe word now...');
+    }
+    
+    function requestDataExport() {
+      showToast('📥 Preparing your data export...');
+    }
+    
+    function requestDataDeletion() {
+      if (confirm('Are you sure you want to delete all your data? This cannot be undone.')) {
+        showToast('Data deletion request submitted');
+      }
+    }
+    
+    function openWhatsAppSupport() {
+      window.open('https://wa.me/2348001234567', '_blank');
+    }
+    
+    function openEmailSupport() {
+      window.location.href = 'mailto:support@safealert.ng';
+    }
+    
+    function callSupport() {
+      window.location.href = 'tel:+2348007233';
+    }
+    
+    function toggleFaq(element) {
+      var answer = element.nextElementSibling;
+      var arrow = element.querySelector('.faq-arrow');
+      if (answer.style.display === 'block') {
+        answer.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+      } else {
+        answer.style.display = 'block';
+        arrow.style.transform = 'rotate(90deg)';
+      }
     }
     
     // =============================================
@@ -8018,26 +10599,155 @@ Respond ONLY with valid JSON:
       }
     }
     
-    // Long-press AI button to open chat
+    // =============================================
+    // DRAGGABLE AI BUTTON
+    // =============================================
     var aiLongPress = null;
-    document.addEventListener('DOMContentLoaded', function() {
+    var aiBtnDragging = false;
+    var aiBtnStartX = 0;
+    var aiBtnStartY = 0;
+    var aiBtnCurrentX = 0;
+    var aiBtnCurrentY = 0;
+    var aiBtnMoved = false;
+    var lastTapTime = 0;
+    
+    // Default position (bottom-right, above nav)
+    var aiBtnDefaultPos = { bottom: 100, right: 20 };
+    
+    function initDraggableAIButton() {
       var aiBtn = document.getElementById('aiFloatBtn');
-      if (aiBtn) {
-        aiBtn.addEventListener('pointerdown', function(e) {
-          aiLongPress = setTimeout(function() {
+      if (!aiBtn) return;
+      
+      // Load saved position from localStorage
+      var savedPos = localStorage.getItem('aiBtnPosition');
+      if (savedPos) {
+        try {
+          var pos = JSON.parse(savedPos);
+          aiBtn.style.bottom = 'auto';
+          aiBtn.style.right = 'auto';
+          aiBtn.style.top = pos.top + 'px';
+          aiBtn.style.left = pos.left + 'px';
+        } catch(e) {
+          // Use default position
+        }
+      }
+      
+      // Pointer down - start potential drag
+      aiBtn.addEventListener('pointerdown', function(e) {
+        e.preventDefault();
+        aiBtn.setPointerCapture(e.pointerId);
+        
+        aiBtnDragging = true;
+        aiBtnMoved = false;
+        
+        var rect = aiBtn.getBoundingClientRect();
+        aiBtnStartX = e.clientX - rect.left;
+        aiBtnStartY = e.clientY - rect.top;
+        aiBtnCurrentX = rect.left;
+        aiBtnCurrentY = rect.top;
+        
+        // Check for double-tap to reset position
+        var now = Date.now();
+        if (now - lastTapTime < 300) {
+          resetAIButtonPosition();
+          aiBtnDragging = false;
+          lastTapTime = 0;
+          return;
+        }
+        lastTapTime = now;
+        
+        // Long-press timer for opening AI chat
+        aiLongPress = setTimeout(function() {
+          if (!aiBtnMoved) {
             switchScreen('aiScreen');
             stopVoiceSOS();
-          }, 500);
-        });
+            aiBtnDragging = false;
+          }
+        }, 500);
+      });
+      
+      // Pointer move - drag the button
+      aiBtn.addEventListener('pointermove', function(e) {
+        if (!aiBtnDragging) return;
         
-        aiBtn.addEventListener('pointerup', function() {
-          if (aiLongPress) clearTimeout(aiLongPress);
-        });
+        var newX = e.clientX - aiBtnStartX;
+        var newY = e.clientY - aiBtnStartY;
         
-        aiBtn.addEventListener('pointercancel', function() {
-          if (aiLongPress) clearTimeout(aiLongPress);
-        });
-      }
+        // Check if actually moved (more than 10px)
+        if (Math.abs(newX - aiBtnCurrentX) > 10 || Math.abs(newY - aiBtnCurrentY) > 10) {
+          aiBtnMoved = true;
+          if (aiLongPress) {
+            clearTimeout(aiLongPress);
+            aiLongPress = null;
+          }
+          aiBtn.classList.add('dragging');
+        }
+        
+        if (aiBtnMoved) {
+          // Keep within screen bounds
+          var maxX = window.innerWidth - 56;
+          var maxY = window.innerHeight - 56;
+          newX = Math.max(0, Math.min(newX, maxX));
+          newY = Math.max(50, Math.min(newY, maxY - 80)); // Account for status bar and nav
+          
+          aiBtn.style.bottom = 'auto';
+          aiBtn.style.right = 'auto';
+          aiBtn.style.top = newY + 'px';
+          aiBtn.style.left = newX + 'px';
+        }
+      });
+      
+      // Pointer up - end drag
+      aiBtn.addEventListener('pointerup', function(e) {
+        if (aiLongPress) {
+          clearTimeout(aiLongPress);
+          aiLongPress = null;
+        }
+        
+        aiBtn.classList.remove('dragging');
+        
+        if (aiBtnMoved) {
+          // Save position
+          var rect = aiBtn.getBoundingClientRect();
+          localStorage.setItem('aiBtnPosition', JSON.stringify({
+            top: rect.top,
+            left: rect.left
+          }));
+          showToast('📍 Button position saved');
+        } else if (aiBtnDragging) {
+          // It was a tap, not a drag - trigger voice
+          toggleVoiceSOS();
+        }
+        
+        aiBtnDragging = false;
+        aiBtnMoved = false;
+      });
+      
+      // Pointer cancel
+      aiBtn.addEventListener('pointercancel', function() {
+        if (aiLongPress) clearTimeout(aiLongPress);
+        aiBtn.classList.remove('dragging');
+        aiBtnDragging = false;
+        aiBtnMoved = false;
+      });
+    }
+    
+    function resetAIButtonPosition() {
+      var aiBtn = document.getElementById('aiFloatBtn');
+      if (!aiBtn) return;
+      
+      aiBtn.style.top = 'auto';
+      aiBtn.style.left = 'auto';
+      aiBtn.style.bottom = aiBtnDefaultPos.bottom + 'px';
+      aiBtn.style.right = aiBtnDefaultPos.right + 'px';
+      
+      localStorage.removeItem('aiBtnPosition');
+      showToast('🔄 Button reset to default position');
+    }
+    
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+      initDraggableAIButton();
     });
     
     // =============================================
@@ -8929,4 +11639,5 @@ Respond ONLY with valid JSON:
   </script>
 </body>
 </html>
+ 
 
